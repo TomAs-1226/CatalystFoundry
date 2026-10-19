@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import {buildUpdateHelper} from './build-update-helper.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 if (!process.env.npm_execpath) throw new Error('Run this preparation through npm run desktop:prepare.');
@@ -15,6 +16,7 @@ const result = spawnSync(process.execPath, [process.env.npm_execpath, 'run', 'bu
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 await mkdir(path.join(root, 'desktop-dist'), { recursive: true });
+if(process.platform==='win32')await buildUpdateHelper(path.join(root,'desktop-dist/update-runner.exe'));
 await build({
   entryPoints: [path.join(root, 'electron/server-entry.ts')],
   outfile: path.join(root, 'desktop-dist/server.cjs'),

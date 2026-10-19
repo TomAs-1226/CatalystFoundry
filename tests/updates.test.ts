@@ -5,11 +5,14 @@ import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname,basename} from 'node:path';
 import {once} from 'node:events';
+import {spawn,spawnSync,type ChildProcess} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import express from 'express';
 import {registerUpdateRoutes} from '../server/desktop-updates';
 import {restartUpdate} from '../src/components/restart-update';
 const require=createRequire(import.meta.url);
 const {createUpdateHost,validateManifest,canonicalPayload,compareVersions,releaseUrl,vendorResponse}=require('../electron/updates.cjs');
+const {spawnUpdateHelper}=require('../electron/update-process.cjs');
 const keys=generateKeyPairSync('ed25519'),publicKey=keys.publicKey.export({type:'spki',format:'pem'});
 it('locks edits between a successful save and native restart readiness, and unlocks on helper failure',async()=>{
  const sequence:string[]=[];
@@ -23,6 +26,28 @@ function signed(version='0.2.0'){
  return {payload,signature:sign(null,Buffer.from(canonicalPayload(payload)),keys.privateKey).toString('base64')};
 }
 async function temp(fn:(directory:string)=>Promise<void>){const dir=await mkdtemp(join(tmpdir(),'foundry-updates-'));try{await fn(dir);}finally{if(dirname(dir)!==tmpdir()||!basename(dir).startsWith('foundry-updates-'))throw Error('Unsafe test cleanup');await rm(dir,{recursive:true,force:true});}}
+async function stopOwned(child:ChildProcess|undefined){if(child&&child.exitCode===null&&child.signalCode===null){const stopped=once(child,'exit');child.kill();await stopped;}}
+async function waitFile(file:string,child?:ChildProcess){const deadline=Date.now()+12000;do{if(child&&child.exitCode!==null)throw Error('Native helper exited before readiness: '+child.exitCode);try{return await readFile(file,'utf8');}catch{}await new Promise(resolve=>setTimeout(resolve,50));}while(Date.now()<deadline);throw Error('Native helper did not complete.');}
+function compileHelper(directory:string){const output=join(directory,'update-runner.exe'),compiled=spawnSync(process.execPath,[fileURLToPath(new URL('../scripts/windows/build-update-helper.mjs',import.meta.url)),output],{encoding:'utf8',windowsHide:true});if(compiled.status!==0)throw Error(compiled.stdout+compiled.stderr);return output;}
+it.runIf(process.platform==='win32')('runs the real hidden Windows helper and authenticates bytes before waiting, without executing an installer',async()=>temp(async directory=>{
+ const installer=join(directory,'non-executable-test.exe'),bytes=Buffer.from('NON EXECUTABLE SOFTWARE FIXTURE'),sha256=createHash('sha256').update(bytes).digest('hex');await writeFile(installer,bytes);
+ const parent=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore',windowsHide:true});await once(parent,'spawn');let helper:ChildProcess|undefined;
+ try{
+  helper=spawnUpdateHelper({helperPath:compileHelper(directory),probeOnly:true,installer,application:join(directory,'never-launched.exe'),parentPid:parent.pid,sha256,resultFile:join(directory,'result.json'),readyFile:join(directory,'ready.json')});await once(helper!,'spawn');
+  const ready=JSON.parse((await waitFile(join(directory,'ready.json'),helper)).replace(/^\uFEFF/,''));expect(ready).toEqual({ready:true,processId:helper!.pid,sha256});expect(parent.exitCode).toBeNull();await expect(readFile(join(directory,'result.json'))).rejects.toThrow();
+  await stopOwned(helper);helper=undefined;await writeFile(installer,'TAMPERED NON EXECUTABLE FIXTURE');
+  helper=spawnUpdateHelper({helperPath:join(directory,'update-runner.exe'),probeOnly:true,installer,application:join(directory,'never-launched.exe'),parentPid:parent.pid,sha256,resultFile:join(directory,'bad-result.json'),readyFile:join(directory,'bad-ready.json')});await once(helper!,'spawn');await once(helper!,'exit');expect(helper!.exitCode).toBe(1);expect(JSON.parse(await readFile(join(directory,'bad-result.json'),'utf8')).error).toMatch(/bytes changed/);await expect(readFile(join(directory,'bad-ready.json'))).rejects.toThrow();
+ }finally{await stopOwned(helper);await stopOwned(parent);}
+}),20000);
+it.runIf(process.platform==='win32')('keeps the windowless native helper alive after its launching parent exits',async()=>temp(async directory=>{
+ const readyFile=join(directory,'ready.json'),resultFile=join(directory,'survived.txt'),parentFile=join(directory,'parent.cjs');let helperPid:number|undefined;
+ const bytes=Buffer.from('NON EXECUTABLE LIFECYCLE FIXTURE'),installer=join(directory,'never-used.exe');await writeFile(installer,bytes);
+ const options=JSON.stringify({helperPath:compileHelper(directory),probeOnly:true,installer,application:join(directory,'never-launched.exe'),sha256:createHash('sha256').update(bytes).digest('hex'),readyFile,resultFile});
+ await writeFile(parentFile,`const {spawnUpdateHelper}=require(${JSON.stringify(require.resolve('../electron/update-process.cjs'))});const fs=require('node:fs');const helper=spawnUpdateHelper({...${options},parentPid:process.pid});const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(readyFile)})){clearInterval(timer);helper.unref();process.exit(0);}},50);setTimeout(()=>{helper.kill();process.exit(1);},12000).unref();`);
+ const parent=spawn(process.execPath,[parentFile],{stdio:'ignore',windowsHide:true});await once(parent,'spawn');
+ try{const ready=JSON.parse((await waitFile(readyFile)).replace(/^\uFEFF/,''));helperPid=ready.processId;if(parent.exitCode===null)await once(parent,'exit');expect(parent.exitCode).toBe(0);expect(JSON.parse(await waitFile(resultFile))).toMatchObject({passed:true,probeOnly:true});helperPid=undefined;}
+ finally{await stopOwned(parent);if(helperPid){try{process.kill(helperPid);}catch{}}}
+}),20000);
 function transport(manifest=signed(),bytes:Uint8Array=installer){const calls:string[]=[];return {calls,fetch:async(url:string,options:any)=>{
  calls.push(url);expect(options.headers.Authorization).toBeUndefined();
  if(url.startsWith('https://api.github.com/')){expect(options.headers.Accept).toBe('application/vnd.github+json');return new Response(JSON.stringify([{draft:false,tag_name:'v0.2.0',assets:[{name:'foundry-update.json',browser_download_url:releaseUrl('0.2.0','foundry-update.json')}]}]));}

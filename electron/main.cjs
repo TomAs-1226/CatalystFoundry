@@ -1,6 +1,6 @@
 const {createConnectHost}=require('./bambu-setup.cjs');
 const {createUpdateHost}=require('./updates.cjs');
-const {spawn}=require('node:child_process');
+const {spawnUpdateHelper}=require('./update-process.cjs');
 const { app, BrowserWindow, Menu, dialog, shell, safeStorage } = require('electron');
 const http = require('node:http');
 // Node 24.19+ honours the session's existing proxy/CA settings for server fetch.
@@ -8,6 +8,7 @@ const http = require('node:http');
 if (typeof http.setGlobalProxyFromEnv === 'function') http.setGlobalProxyFromEnv();
 const path = require('node:path');
 const { mkdir, writeFile, appendFile, readFile } = require('node:fs/promises');
+const {randomUUID}=require('node:crypto');
 const { once } = require('node:events');
 const { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions } = require('./runtime.cjs');
 
@@ -154,10 +155,11 @@ async function start() {
   const serverModule = require(paths.serverEntry);
   if(!smoke&&app.isPackaged)updates=createUpdateHost({directory:path.join(app.getPath('userData'),'updates'),currentVersion:app.getVersion(),install:async(installer,sha256)=>{
     const readyFile=path.join(app.getPath('userData'),'updates','install-ready.json');
-    const commands=await readFile(path.join(process.resourcesPath,'setup','update-runner.ps1'),'utf8');
-    // Trusted bundled commands, with paths as environment data. No execution-
-    // policy override or user-provided script/command is accepted.
-    const helper=spawn('powershell.exe',['-NoProfile','-Command',commands],{detached:true,stdio:'ignore',windowsHide:true,env:{...process.env,CATALYST_UPDATE_INSTALLER:installer,CATALYST_UPDATE_APPLICATION:app.getPath('exe'),CATALYST_UPDATE_PARENT:String(process.pid),CATALYST_UPDATE_SHA256:sha256,CATALYST_UPDATE_RESULT:path.join(app.getPath('userData'),'updates','install-result.json'),CATALYST_UPDATE_READY:readyFile}});
+    const helperPath=path.join(app.getPath('userData'),'updates',`helper-${randomUUID()}.exe`);
+    // Stage the trusted helper outside the installation being replaced.
+    const helperBytes=await readFile(path.join(process.resourcesPath,'setup','update-runner.exe'));
+    await writeFile(helperPath,helperBytes,{flag:'wx',mode:0o600});
+    const helper=spawnUpdateHelper({helperPath,installer,application:app.getPath('exe'),parentPid:process.pid,sha256,resultFile:path.join(app.getPath('userData'),'updates','install-result.json'),readyFile});
     try{
       await once(helper,'spawn');let ready=false;const deadline=Date.now()+30_000;
       while(Date.now()<deadline){if(helper.exitCode!==null)throw Error('The native update helper could not start.');try{const value=JSON.parse((await readFile(readyFile,'utf8')).replace(/^\uFEFF/,''));if(value.ready&&value.processId===helper.pid&&value.sha256===sha256){ready=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,100));}

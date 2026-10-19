@@ -7,7 +7,7 @@ module.exports = {
   asar: true,
   npmRebuild: false,
   files: [
-    'dist/**', 'desktop-dist/server.cjs', 'electron/main.cjs', 'electron/runtime.cjs', 'electron/bambu-connect.cjs', 'electron/bambu-setup.cjs', 'electron/startup.html', 'electron/updates.cjs', 'electron/update-policy.cjs',
+    'dist/**', 'desktop-dist/server.cjs', 'electron/main.cjs', 'electron/runtime.cjs', 'electron/bambu-connect.cjs', 'electron/bambu-setup.cjs', 'electron/startup.html', 'electron/updates.cjs', 'electron/update-policy.cjs', 'electron/update-process.cjs',
     'package.json', '!node_modules/**', '!**/.env*', '!**/*.map', '!**/project.json',
   ],
   extraMetadata: { main: 'electron/main.cjs', productName: 'Catalyst Foundry' },
@@ -15,7 +15,7 @@ module.exports = {
     { from: 'scripts/windows/Start-Foundry.ps1', to: 'setup/Start-Foundry.ps1' },
     { from: 'vendor/bambu', to: 'slicer' },
     { from: 'vendor/licenses', to: 'licenses' },
-    { from: 'electron/update-runner.ps1', to: 'setup/update-runner.ps1' },
+    { from: 'desktop-dist/update-runner.exe', to: 'setup/update-runner.exe' },
   ],
   publish: null,
   forceCodeSigning: false,

@@ -25,7 +25,7 @@ Use native Windows x64 and Node.js 24.19+ in the 24 LTS line (the pinned CI runt
 ~~~powershell
 npm ci
 powershell -NoProfile -File scripts/windows/Build-Installer.ps1 -SkipDependencyInstall
-powershell -NoProfile -File scripts/windows/Verify-Installer.ps1 -Installer release/Catalyst-Foundry-0.2.1-x64-Setup.exe -EvidenceDirectory C:/Foundry-QA/evidence -InstallDirectory C:/Foundry-QA/app
+powershell -NoProfile -File scripts/windows/Verify-Installer.ps1 -Installer release/Catalyst-Foundry-0.2.2-x64-Setup.exe -EvidenceDirectory C:/Foundry-QA/evidence -InstallDirectory C:/Foundry-QA/app
 ~~~
 
 Use a fresh short verification target. NSIS uses the same application identity as a normal installation; save and close any existing Foundry work before installation checks. Build success alone is insufficient: retain actual install and isolated save/reopen evidence.

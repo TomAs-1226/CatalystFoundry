@@ -71,5 +71,9 @@ jobs:
           node scripts/windows/sign-update.mjs "$($installer.FullName)"
           if ($LASTEXITCODE -ne 0) { throw 'Signing unavailable. Sign locally or explicitly authorize/configure the repository signing secret.' }
           $manifest = Join-Path $installer.DirectoryName foundry-update.json
-          gh release create "v$version" "$($installer.FullName)" "$($installer.FullName).sha256" "$manifest" --target "$env:GITHUB_SHA" --prerelease --title "Foundry $version - internal preview" --notes-file docs/INTERNAL-RELEASE.md
-          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }
+          # Keep the signed feed invisible until every release asset is uploaded.
+          # An existing tag/release is never overwritten with rebuilt bytes.
+          gh release create "v$version" "$($installer.FullName)" "$($installer.FullName).sha256" "$manifest" --target "$env:GITHUB_SHA" --draft --prerelease --title "Foundry $version - internal preview" --notes-file docs/INTERNAL-RELEASE.md
+          if ($LASTEXITCODE -ne 0) { throw 'Draft upload failed. Do not overwrite an existing release; use a new version.' }
+          gh release edit "v$version" --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Verified draft could not be published. It remains unavailable to OTA clients.' }

@@ -112,7 +112,7 @@ function createUpdateHost(options){
   async start(){
    // Only owned, non-symlink installer cache files at or below the installed
    // version are removed. CAD, projects, settings and newer downloads stay put.
-   try{for(const entry of await readdir(directory,{withFileTypes:true})){const match=/^update-(.+)-([a-f0-9]{64})[.]exe$/.exec(entry.name);if(!entry.isFile()||!match)continue;try{if(compareVersions(match[1],currentVersion)<=0)await unlink(path.join(directory,entry.name));}catch{}}}catch{}
+   try{for(const entry of await readdir(directory,{withFileTypes:true})){if(!entry.isFile())continue;if(/^helper-[a-f0-9-]{36}[.]exe$/.test(entry.name)){await unlink(path.join(directory,entry.name)).catch(()=>{});continue;}const match=/^update-(.+)-([a-f0-9]{64})[.]exe$/.exec(entry.name);if(!match)continue;try{if(compareVersions(match[1],currentVersion)<=0)await unlink(path.join(directory,entry.name));}catch{}}}catch{}
    try{const previous=JSON.parse(await readFile(path.join(directory,'last-check.json'),'utf8'));if(Date.now()-Date.parse(previous.checkedAt)<6*60*60_000)return;}catch{}
    await host.check();if(options.autoDownload!==false&&status.phase==='available')await host.download();
   },

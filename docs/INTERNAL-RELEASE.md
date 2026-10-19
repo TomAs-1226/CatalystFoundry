@@ -2,6 +2,8 @@
 
 This release adds persistent local autosave, off-thread integrity checks and packed toolpath preview buffers, automatic/low-power 3D quality, and signed OTA downloads with a saved, explicit restart. Review recovery, bundled offline slicing, advanced process controls, color selection and exact manufacturing approval gates remain available.
 
+Version 0.2.2 uses a windowless native update helper after a real ROG upgrade exposed a PowerShell process-lifetime failure in the withdrawn 0.2.1 candidate. The native helper's authenticated readiness, tamper rejection and survival after parent exit have dedicated Windows regression coverage. Release assets upload privately as a draft before the signed feed becomes visible.
+
 Use Project → App updates for version checks and installation. Use Camera options → 3D quality → Low power on a slower laptop. Save progress (Ctrl+S) writes this laptop's exact project; automatic local saves also survive the desktop service's changing loopback address. Portable project export remains available.
 
 This preview does not certify physical printer or material acceptance. Fixture/demonstration projects stay non-manufacturable. Review exact native layers and operator checks before real work. Live printer/AMS compatibility, physical printing, perceived GPU performance and manual UI qualification are separately untested unless a release's validation report explicitly records them. No update or export starts a printer.
