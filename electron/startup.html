@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>Catalyst Foundry</title><style>html,body{margin:0;background:#101214}.foundry-startup { min-height:100dvh; box-sizing:border-box; padding:32px 24px; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#101214; color:#efeff1; font-family:'Segoe UI Variable','Segoe UI',sans-serif; text-align:center; }
+.foundry-startup__identity { display:flex; align-items:center; gap:8px; margin-bottom:14px; color:#b7bbc2; font-size:13px; font-weight:600; }
+.foundry-startup__identity svg { width:22px; height:22px; stroke:#d7445a; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.foundry-startup h1 { margin:0; font-size:40px; line-height:1.2; font-weight:600; letter-spacing:-.03em; }
+.foundry-startup__track { width:min(220px,70vw); height:3px; margin:30px 0 22px; background:#2c3036; overflow:hidden; border-radius:2px; }
+.foundry-startup__track > i { display:block; height:100%; background:#d7445a; transform-origin:left; animation:foundry-startup-fill 1400ms cubic-bezier(.16,1,.3,1) both; }
+.foundry-startup[data-paused=true] * { animation-play-state:paused; }
+.foundry-startup__status { margin:0; min-height:22px; color:#d0d3d7; font-size:14px; line-height:22px; }
+.foundry-startup__status > span { display:none; }
+.foundry-startup[data-stage=engine] .foundry-startup__phase-engine,.foundry-startup[data-stage=workspace] .foundry-startup__phase-workspace,.foundry-startup[data-stage=ready] .foundry-startup__phase-ready { display:inline; }
+.foundry-startup__steps { display:flex; justify-content:center; gap:20px; margin-top:15px; color:#aeb3bb; font-size:12px; }
+.foundry-startup__steps > span { display:inline-flex; align-items:center; gap:7px; }
+.foundry-startup__steps i { width:10px; height:10px; box-sizing:border-box; border:1.5px solid #4d535a; border-radius:50%; }
+.foundry-startup__steps svg { display:none; width:12px; height:12px; fill:none; stroke:#c9cdd2; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.foundry-startup[data-stage=engine] .foundry-startup__step-engine i,.foundry-startup[data-stage=workspace] .foundry-startup__step-workspace i { border-top-color:#e0e3e7; animation:foundry-startup-spin 800ms linear infinite; }
+.foundry-startup[data-stage=workspace] .foundry-startup__step-engine i,.foundry-startup[data-stage=ready] .foundry-startup__steps i { display:none; }
+.foundry-startup[data-stage=workspace] .foundry-startup__step-engine svg,.foundry-startup[data-stage=ready] .foundry-startup__steps svg { display:block; }
+.foundry-startup[data-static=true] .foundry-startup__track > i { animation:none; transform:scaleX(1); }
+@keyframes foundry-startup-fill { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+@keyframes foundry-startup-spin { to{transform:rotate(360deg)} }
+@media(prefers-reduced-motion:reduce) { .foundry-startup__track > i,.foundry-startup .foundry-startup__steps i{animation:none} }
+</style></head><body><main class="foundry-startup" data-stage="engine" data-paused="true" data-animation-ms="1400" data-reduced-ms="400" role="status" aria-live="polite" aria-busy="true">
+<div class="foundry-startup__identity"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 2 12 7v14l-12 7L4 23V9Z"/><path d="M11 22V11h12M11 16h10"/></svg><span>Catalyst</span></div>
+<h1>Foundry</h1>
+<div class="foundry-startup__track" aria-hidden="true"><i></i></div>
+<p class="foundry-startup__status"><span class="foundry-startup__phase-engine">Starting the local engine</span><span class="foundry-startup__phase-workspace">Opening your workspace</span><span class="foundry-startup__phase-ready">Workspace ready</span></p>
+<div class="foundry-startup__steps" aria-hidden="true"><span class="foundry-startup__step-engine"><i></i><svg viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg>Local engine</span><span class="foundry-startup__step-workspace"><i></i><svg viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg>Workspace</span></div></main></body></html>

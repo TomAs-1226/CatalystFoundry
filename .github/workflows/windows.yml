@@ -1,0 +1,72 @@
+name: Windows checks and internal release
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a signed internal prerelease after native checks
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.0
+          cache: npm
+      - run: npm ci
+      - name: Build and run all unit checks
+        shell: powershell
+        run: ./scripts/windows/Build-Installer.ps1 -SkipDependencyInstall
+      - name: Native installation and isolated save/reopen
+        shell: powershell
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          ./scripts/windows/Verify-Installer.ps1 -Installer "release/Catalyst-Foundry-$version-x64-Setup.exe" -EvidenceDirectory .qa/evidence -InstallDirectory C:/Foundry-QA/app
+      - name: Retain native reports and installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-internal-preview
+          path: |
+            release/*Setup.exe
+            release/*.sha256
+            .qa/evidence/*.json
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    needs: windows
+    runs-on: windows-2025
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.0
+      - name: Sign verified artifact and publish internal prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FOUNDRY_UPDATE_PRIVATE_KEY: ${{ secrets.FOUNDRY_UPDATE_PRIVATE_KEY }}
+        shell: powershell
+        run: |
+          gh run download "$env:GITHUB_RUN_ID" --name windows-internal-preview --dir .artifacts
+          if ($LASTEXITCODE -ne 0) { throw 'Verified build artifacts could not be downloaded.' }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $installer = Get-ChildItem .artifacts -Recurse -Filter "Catalyst-Foundry-$version-x64-Setup.exe" | Select-Object -First 1
+          if (-not $installer) { throw 'Verified installer missing.' }
+          node scripts/windows/sign-update.mjs "$($installer.FullName)"
+          if ($LASTEXITCODE -ne 0) { throw 'Signing unavailable. Sign locally or explicitly authorize/configure the repository signing secret.' }
+          $manifest = Join-Path $installer.DirectoryName foundry-update.json
+          gh release create "v$version" "$($installer.FullName)" "$($installer.FullName).sha256" "$manifest" --target "$env:GITHUB_SHA" --prerelease --title "Foundry $version - internal preview" --notes-file docs/INTERNAL-RELEASE.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

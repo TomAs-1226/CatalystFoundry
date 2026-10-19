@@ -1,0 +1,49 @@
+{
+  "name": "catalyst-foundry",
+  "version": "0.2.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"node --use-env-proxy --import tsx --watch server/index.ts\" \"vite --host 127.0.0.1\"",
+    "build": "tsc -b && vite build",
+    "build:sync": "tsc -b && node scripts/build-sync.mjs",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "start": "node --use-env-proxy --import tsx server/production.ts",
+    "desktop:prepare": "node scripts/windows/build-desktop.mjs",
+    "desktop:dev": "npm run desktop:prepare && electron .",
+    "dist:win": "npm run desktop:prepare && electron-builder --config packaging/electron-builder.cjs --win nsis --x64"
+  },
+  "dependencies": {
+    "express": "5.1.0",
+    "fflate": "0.8.2",
+    "lucide-react": "0.468.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "three": "0.180.0",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0",
+    "@types/express": "5.0.3",
+    "@types/node": "24.7.2",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@types/three": "0.180.0",
+    "@vitejs/plugin-react": "5.0.4",
+    "concurrently": "9.2.1",
+    "electron": "42.0.0",
+    "electron-builder": "26.0.12",
+    "esbuild": "0.25.11",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.1.10",
+    "vitest": "3.2.4"
+  },
+  "main": "electron/main.cjs",
+  "description": "Guided Onshape-to-manufacturing preparation and exact-job review workspace for robotics teams.",
+  "overrides": {
+    "@electron/node-gyp": "10.2.0-electron.1"
+  }
+}

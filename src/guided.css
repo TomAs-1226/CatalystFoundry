@@ -1,0 +1,407 @@
+/* One task at a time; advanced engineering controls remain available on demand. */
+.guided-app {
+  grid-template-columns: minmax(0, 1fr);
+}
+.guided-app .shell {
+  height: 100dvh;
+}
+.guided-app .topbar {
+  height: 56px;
+  min-height: 56px;
+  padding: 0 24px;
+}
+.guided-app .projectbar {
+  min-height: 64px;
+  padding: 10px 24px;
+}
+.guided-app .projectbar .breadcrumb,
+.guided-app .projectbar .subtitle {
+  display: none;
+}
+.guided-app .project-job-name {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.guided-app .projectmeta > div > span {
+  font-size: 11px;
+}
+.guided-app .workflow {
+  padding: 0 24px;
+  min-height: 48px;
+  height: 48px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.guided-app .workflow .step {
+  padding: 0 14px;
+  font-size: 12px;
+  gap: 9px;
+  min-width: 0;
+}
+.guided-app .stepnumber {
+  border: 0;
+  font-size: 11px;
+  color: var(--cat-body);
+}
+.guided-app .step.active .stepnumber {
+  color: var(--accent);
+}
+.guided-app .workflow .step.active {
+  background: var(--cat-surface-2);
+}
+.guided-app .workspace {
+  grid-template-columns: 215px minmax(0, 1fr) 308px;
+}
+.guided-app .review-page,
+.guided-app .help-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.guided-app .review-layout {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.guided-app .guided-export .exact-approval-panel {
+  display: none;
+}
+.guided-app .guided-review .review-layout {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.guided-app .continue-export {
+  margin-top: 16px;
+}
+.intake-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 52px max(24px, calc((100% - 810px) / 2)) 32px;
+}
+.page-source .projectbar {
+  display: none;
+}
+.intake-intro .eyebrow {
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 17px;
+}
+.intake-intro h2 {
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 500;
+  line-height: 1.25;
+  max-width: 640px;
+  letter-spacing: -0.7px;
+  margin: 0 0 16px;
+}
+.intake-intro > p {
+  font-size: 14px;
+  color: var(--cat-body);
+  line-height: 1.75;
+  max-width: 650px;
+  margin: 0;
+}
+.intake-primary {
+  display: flex;
+  gap: 22px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-top: 36px;
+  padding: 28px 0;
+}
+.intake-symbol {
+  width: 54px;
+  height: 54px;
+  background: var(--cat-surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.intake-primary h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 9px;
+}
+.intake-primary p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--cat-body);
+  margin: 0 0 14px;
+}
+.intake-primary .btn {
+  font-size: 12px;
+  padding: 10px 15px;
+  min-height: 38px;
+}
+.connection-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px !important;
+  color: var(--cat-warn) !important;
+}
+.connection-line .dot {
+  background: var(--cat-warn-tint);
+}
+.connection-line .dot.online {
+  background: var(--cat-ok-tint);
+}
+.intake-alternatives {
+  display: flex;
+  gap: 32px;
+}
+.text-action {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  padding: 21px 0;
+  color: var(--cat-body);
+  border-bottom: 1px solid var(--line);
+}
+.text-action strong {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+  color: var(--cat-ink);
+}
+.text-action small {
+  font-size: 11px;
+  line-height: 1.5;
+  display: block;
+}
+.text-action > svg:last-child {
+  margin-left: auto;
+}
+.text-action:hover strong {
+  color: var(--accent);
+}
+.intake-footnote {
+  font-size: 11px;
+  color: var(--cat-dim);
+  line-height: 1.8;
+  max-width: 670px;
+  margin-top: 29px;
+}
+.intake-existing {
+  margin-top: 26px;
+  border-left: 2px solid var(--cat-line-strong);
+  padding-left: 16px;
+}
+.intake-existing p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.advanced-disclosure {
+  margin: 10px 0;
+}
+.advanced-disclosure > summary {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cat-body);
+  cursor: pointer;
+  padding: 10px 0;
+  display: list-item;
+}
+.advanced-disclosure > summary span {
+  float: right;
+  font-size: 11px;
+  color: var(--cat-signal-ink);
+  font-weight: 400;
+}
+.advanced-disclosure[open] > summary {
+  color: var(--accent);
+}
+.guided-app .recommendation {
+  background: transparent;
+  border: 0;
+  padding: 8px 0;
+}
+.guided-app .recommendation strong {
+  color: var(--cat-ink);
+}
+.guided-app .source-option {
+  box-shadow: none;
+}
+.slicing-status {
+  color: var(--cat-warn);
+  font-size: 11px;
+  font-weight: 500;
+  margin: 10px 0;
+}
+.slicing-status.available {
+  color: var(--cat-ok);
+}
+.setup-steps {
+  padding-left: 18px;
+  color: var(--cat-body);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.setup-steps li {
+  margin-bottom: 9px;
+}
+.slice-progress {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.slice-progress > .row {
+  justify-content: space-between;
+  font-size: 11px;
+}
+.slice-progress > progress {
+  width: 100%;
+  height: 5px;
+  accent-color: var(--accent);
+  margin: 12px 0;
+}
+.slice-progress > .btn {
+  margin-top: 8px;
+}
+.slicer-logs {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--cat-body);
+  padding: 8px;
+  background: var(--cat-surface-1);
+}
+.guided-app .footer-app {
+  height: 24px;
+  min-height: 24px;
+}
+@media (max-width: 1100px) {
+  .guided-app .workspace {
+    grid-template-columns: 185px minmax(0, 1fr) 280px;
+  }
+  .guided-app .workflow {
+    padding: 0 12px;
+    gap: 0;
+  }
+  .guided-app .workflow .step {
+    padding: 0 10px;
+    font-size: 11px;
+  }
+  .guided-app .save-state {
+    max-width: 125px;
+  }
+}
+@media (max-width: 700px) {
+  .guided-app {
+    height: 100dvh;
+    padding: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .guided-app .shell {
+    height: 100dvh;
+    padding: 0;
+  }
+  .guided-app .topbar {
+    height: 49px;
+    min-height: 49px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .guided-app .brand {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .guided-app .brand span {
+    font-size: 13px;
+  }
+  .guided-app .topright {
+    gap: 4px;
+  }
+  .guided-app .topright .btn {
+    font-size: 0;
+    width: 30px;
+    min-width: 30px;
+    padding: 6px;
+  }
+  .guided-app .topright .btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .guided-app .topright .save-state {
+    display: none;
+  }
+  .guided-app .projectbar {
+    min-height: 54px;
+    padding: 8px 12px;
+  }
+  .guided-app .projectbar h1 {
+    font-size: 15px;
+  }
+  .guided-app .project-job-name {
+    display: none;
+  }
+  .guided-app .workflow {
+    overflow-x: auto;
+    padding: 0 5px;
+    height: 44px;
+    min-height: 44px;
+    scrollbar-width: none;
+  }
+  .guided-app .workflow .step {
+    display: flex;
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 0 9px;
+    gap: 6px;
+    min-height: 44px;
+  }
+  .guided-app .workflow .stepnumber {
+    font-size: 11px;
+  }
+  .guided-app .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .guided-app .review-layout,
+  .guided-app .guided-review .review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .intake-page {
+    padding: 32px 20px 24px;
+  }
+  .intake-intro h2 {
+    font-size: 26px;
+  }
+  .intake-intro > p {
+    font-size: 12px;
+  }
+  .intake-primary {
+    margin-top: 26px;
+    padding: 23px 0;
+    gap: 14px;
+  }
+  .intake-primary h3 {
+    font-size: 16px;
+  }
+  .intake-symbol {
+    width: 38px;
+    height: 38px;
+  }
+  .intake-symbol svg {
+    width: 20px;
+  }
+  .intake-alternatives {
+    display: block;
+  }
+  .text-action {
+    width: 100%;
+    padding: 17px 0;
+  }
+  .intake-footnote {
+    margin-top: 20px;
+    font-size: 11px;
+  }
+}

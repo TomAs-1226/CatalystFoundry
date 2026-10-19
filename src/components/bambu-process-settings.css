@@ -1,0 +1,16 @@
+.bambu-process-settings { display:grid; gap:12px; }
+.bambu-process-settings .field { display:grid; gap:6px; }
+.bambu-setting-group { border-top:1px solid var(--cat-line); padding-top:10px; }
+.bambu-setting-group > summary { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:6px 0; color:var(--cat-ink); font-size:13px; }
+.bambu-setting-group > summary > span { color:var(--cat-dim); font-size:11px; }
+.bambu-setting-group > summary > strong { flex:1; margin-left:6px; font-weight:600; }
+.bambu-setting-group > summary > svg { transition:transform 120ms ease-out; }
+.bambu-setting-group[open] > summary > svg { transform:rotate(90deg); }
+@media(prefers-reduced-motion:reduce) { .bambu-setting-group > summary > svg { transition:none; } }
+.bambu-setting-group > div { display:grid; gap:12px; padding-top:10px; }
+.bambu-setting-field { display:grid; gap:6px; color:var(--cat-body); font-size:12px; }
+.bambu-setting-field > span { display:flex; justify-content:space-between; gap:8px; }
+.bambu-setting-field small { color:var(--cat-dim); }
+.bambu-setting-field > div { display:flex; align-items:center; gap:10px; }
+.bambu-setting-field input,.bambu-setting-field select { width:100%; min-width:0; flex:1; }
+.bambu-setting-field .linkbutton { font-size:11px; flex-shrink:0; }

@@ -1,0 +1,13 @@
+# Review recovery and Bambu Connect setup
+
+Slice monitoring, recovery and native layer attachment are now owned by the root app. Moving to Review removes the workspace panel but no longer removes that work. Review can show slicing, waiting for another action, attachment, matching-result recovery, unsupported/stale output and retry states. A preview is only reported as attached after the exact native artifact is current in the active job. A revoked mapping cannot silently reattach.
+
+The Project menu exposes **Connect a printer** before slicing. The same setup is available alongside native handoff on Review/Export. It can install the official Windows companion, open it for login/LAN pairing, and recheck detection. Detection never downloads software or opens an application. No account or password is embedded or shared by Foundry. Its team workspace remains independent of the Bambu login; operators can use an existing Bambu account in Connect or choose LAN discovery there. Login/pairing state is unknown to Foundry.
+
+The optional setup downloads Bambu Connect **2.5.0-beta.15**, linked from Bambu's official wiki when checked on 2026-10-18, rather than redistributing the proprietary binary. The downloaded installer is pinned to SHA-256 `60008eeaf2ccafc4767c3e510fa3b79326633c905f17512ee6c7137dcb35bb8f`, measured from that official download after a valid Windows Authenticode check. Its publisher organization is Shanghai Lunkuo Technology Co., Ltd. Installation checks both bytes and publisher before execution. Downloads are bounded to 150 MiB and the pinned HTTPS distribution host; the renderer cannot supply another URL, program path or installer argument.
+
+Installed executables must carry a valid exact publisher identity. An existing official installation is reused, including supported later versions with that signature. Fresh installation opens the empty companion for the operator's own login or Discover action; its first launch registers the Windows protocol. The documented encoded file-import URL opens only the exact checked native artifact when the operator explicitly requests handoff. No printer acceptance, start or completion is inferred.
+
+Windows native build, installation, controller/native tests and unresolved limitations belong in the delivered Review-connect validation report. Automated Foundry UI interaction, physical printing and live printer compatibility remain outside the checks under the user's instruction. These checks cannot establish the absence of all bugs or a completed hardware qualification.
+
+References: [official Connect guide and download](https://wiki.bambulab.com/en/software/bambu-connect), [third-party integration](https://wiki.bambulab.com/en/software/third-party-integration).

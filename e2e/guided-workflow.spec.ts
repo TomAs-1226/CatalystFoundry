@@ -1,0 +1,60 @@
+import { openSettings, openSlicingSettings, openProjectMenu, openCameraOptions, openParts } from './navigation';
+import { test, expect, type Page } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+
+async function capture(page: Page, filename: string) {
+  await mkdir('docs/guided-workflow', { recursive: true });
+  await page.screenshot({ path: `docs/guided-workflow/${filename}.png`, fullPage: true });
+}
+
+test('guided first launch shows setup honestly, uses explicit demo opt-in, and keeps advanced controls closed', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/api/project', route => route.fulfill({ json: { project: null } }));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Choose a design to prepare.', exact: true })).toBeVisible();
+  await expect(page.locator('.part-card')).toHaveCount(0);
+  await expect(page.getByText('Login setup needed · no Onshape account is connected', { exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Manufacturing workflow' }).getByRole('button')).toHaveCount(5);
+  await capture(page, 'guided-start-desktop');
+  await page.getByRole('button', { name: '05 Export', exact: true }).click();
+  await expect(page.getByText('Approval needed', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export approved package', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Return to approval', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Approve exact job', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '01 Select design', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await capture(page, 'guided-start-mobile');
+  await page.getByRole('button', { name: 'Select design', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Bring your design into Foundry', exact: true });
+  await expect(dialog.getByRole('tab', { name: 'Onshape', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(dialog.getByText('Onshape setup required', { exact: true })).toBeVisible();
+  await expect(dialog.locator('input[type=password]')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Transfer selected parts', exact: true })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Check connection', exact: true }).click();
+  await expect(dialog.getByText('Onshape setup required', { exact: true })).toBeVisible();
+  await capture(page, 'guided-onshape-setup');
+  await dialog.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await page.setViewportSize({ width: 1512, height: 1050 });
+  await page.getByRole('button', { name: 'Try demonstration fixtures', exact: false }).click();
+  await expect(dialog.getByRole('tab', { name: 'Demonstration fixtures', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(dialog.getByText('Demonstration fixtures — not production CAD.', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Import selected parts', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator('.part-card')).toHaveCount(4);
+  await expect(page.locator('.inspector')).not.toBeVisible();
+  await openSettings(page,'part');
+  await expect(page.getByLabel('Rotate X', { exact: true })).not.toBeVisible();
+  await expect(page.getByLabel('Required quantity', { exact: true })).toBeVisible();
+  await openSettings(page,'process');
+  await expect(page.getByLabel('Nozzle', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Wall loops', { exact: true })).not.toBeVisible();
+  await page.locator('summary').filter({ hasText: /^Advanced slicing settings/ }).click();
+  await expect(page.getByLabel('Wall loops', { exact: true })).toBeVisible();
+  await page.locator('summary').filter({ hasText: /^Advanced slicing settings/ }).click();
+  await expect(page.getByLabel('Wall loops', { exact: true })).not.toBeVisible();
+  await openSettings(page,'part');
+  await capture(page, 'guided-prepare-desktop');
+  expect(errors).toEqual([]);
+});

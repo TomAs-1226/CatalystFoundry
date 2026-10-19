@@ -1,0 +1,15 @@
+# Filament colors and read-only printer status
+
+Open **Filament** in the Prepare or toolpath canvas header. You can choose a manual color without pairing a printer. The chosen color is resolved into a complete, separately hashed filament profile and included in the native 3MF. Changing it invalidates the matching result and approval; it does not change material type or qualify a spool.
+
+For AMS colors, choose **Connect printer for AMS colors**. Enter the printer's private IPv4 address, serial and existing eight-character LAN access code inside Foundry. Check the certificate, verify the address/serial against your printer, then explicitly trust that certificate for this pairing. The access code is sent only after the TLS peer matches the pin. The desktop's encryption vault stores the pairing; no credential is returned by the status API. A changed certificate requires re-pairing. Foundry does not change LAN/developer/security settings.
+
+The status client uses a bounded MQTT 3.1.1 connection on port 8883. It subscribes to the selected serial's report topic and issues only the fixed `pushing.pushall` status request. There is no arbitrary command API, print-start action, file transfer, AMS movement or temperature change. Refresh is limited, coalesced and performed at most once a minute by the visible preparation UI, or manually. An incomplete/failed/stale report does not become a claimed live spool list.
+
+The parser follows the primary [Bambu Studio AMS implementation](https://github.com/bambulab/BambuStudio/blob/master/src/slic3r/GUI/DeviceCore/DevFilaSystem.cpp): presence bits, AMS/tray IDs, material type, RGBA color, optional multicolor data and active tray. The transport follows [OASIS MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html). It currently maps standard AMS IDs 0-3 and their four trays, plus a reported external spool. Special AMS HT IDs, new firmware schemas and model-specific report variants may require extensions. A multicolor spool preview uses its first reported base color; it does not simulate gradients through a print.
+
+A fresh compatible slot can supply a new neutral draft's default color. Existing custom colors are retained; selecting a slot explicitly changes the color. Slots of a different material are not silently substituted. A snapshot is an observation, not proof that the spool is still physically loaded. Verify the final physical tray mapping in Bambu Connect before Print.
+
+Cloud login and final printer/tray selection remain in Bambu Connect. Foundry's import-file handoff has no telemetry return path. Cloud AMS readout is not implemented; use a manual color or a reachable, explicitly paired LAN status endpoint. No Bambu cloud token is requested or stored by this feature.
+
+X1/X2D **offline slicing** is tested separately. The read-only LAN client has synthetic protocol, pinning, persistence, stale-data and material-matching tests. Actual printer/AMS/firmware compatibility remains **untested** until the operator pairs a test printer. No real printer was contacted during development.

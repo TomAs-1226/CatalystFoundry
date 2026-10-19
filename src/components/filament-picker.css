@@ -1,0 +1,19 @@
+.filament-trigger { white-space:nowrap; }
+.filament-swatch { display:inline-block; flex:0 0 18px; width:18px; height:18px; border:1px solid #ffffff30; border-radius:50%; }
+.filament-panel { position:fixed; inset:auto 16px 92px auto; margin:0; padding:0; width:min(330px,calc(100vw - 32px)); max-height:calc(100dvh - 150px); overflow:auto; color:var(--cat-ink); background:var(--cat-surface-1); border:1px solid var(--cat-line-strong); border-radius:12px; box-shadow:var(--cat-glass-shadow); }
+.filament-body { padding:16px; display:grid; gap:12px; }
+.filament-body p { margin:0; }
+.filament-manual,.filament-connection { display:flex; align-items:center; gap:8px; font-size:13px; }
+.filament-manual > input { margin-left:auto; width:42px; min-height:30px; padding:3px; }
+.filament-connection .iconbtn { margin-left:auto; }
+.filament-slots { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.filament-slots > button { display:flex; align-items:center; gap:8px; padding:10px; text-align:left; border:1px solid var(--cat-line); border-radius:8px; background:var(--cat-surface-2); color:var(--cat-ink); font-size:12px; }
+.filament-slots > button.selected { border-color:var(--cat-signal-line); background:var(--cat-signal-tint); }
+.filament-slots > button:disabled { opacity:.45; cursor:default; }
+.filament-slots small { display:block; margin-top:3px; color:var(--cat-dim); font-size:10px; }
+.filament-pairing { display:grid; gap:12px; }
+.filament-pairing .field { display:grid; gap:6px; font-size:12px; }
+.filament-fingerprint { display:block; overflow-wrap:anywhere; color:var(--cat-dim); font:11px var(--cat-mono); }
+.filament-panel summary { cursor:pointer; font-size:12px; }
+.filament-panel .checkline { display:flex; gap:8px; font-size:12px; line-height:1.5; }
+.filament-panel :focus-visible { outline:2px solid var(--cat-signal-ink); outline-offset:2px; }

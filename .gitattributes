@@ -1,0 +1,7 @@
+* text=auto
+*.stl -text
+*.gcode -text
+*.3mf binary
+*.zip binary
+*.png binary
+*.ico binary

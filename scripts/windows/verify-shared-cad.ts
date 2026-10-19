@@ -1,0 +1,4 @@
+import {verifySharedCadStorage} from './shared-cad-probe';
+const origin=new URL(process.argv[2]);if(origin.protocol!=='http:'||origin.hostname!=='127.0.0.1'||origin.pathname!=='/')throw Error('Use the normal installed Foundry loopback origin.');
+async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{const response=await fetch(origin.origin+'/api/sync'+path,{method,headers:{Origin:origin.origin,...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(60000)});const value=await response.json();if(!response.ok)throw Error(path+' HTTP '+response.status+': '+value.error);return value as T;}
+await verifySharedCadStorage(api,process.argv[3]??'../../evidence/shared-cad-live-verification.json','Actual authenticated Cloudflare publish/list/download/delete through the installed local service; public non-manufacturable fixture only');

@@ -1,0 +1,269 @@
+.viewer-quality{display:flex;align-items:center;gap:8px;padding:4px 8px;font-size:12px;white-space:nowrap}
+.viewer-quality select{max-width:120px;background:var(--surface,#191b1f);color:inherit;border:1px solid var(--border,#34363d);border-radius:6px;padding:5px}
+.updates-actions{display:flex;gap:8px;flex-wrap:wrap;margin-block:16px}
+.app-updates progress{width:100%;accent-color:var(--accent,#c52b43)}
+.workspace-viewer {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  overflow: hidden;
+  background: var(--cat-surface-2);
+  color: var(--cat-body);
+  font-family: inherit;
+}
+.workspace-viewer__canvas {
+  position: absolute;
+  inset: 0;
+}
+.workspace-viewer__loading { position:absolute; right:18px; bottom:44px; z-index:4; padding:6px 9px; background:var(--cat-surface-1); color:var(--cat-body); border-radius:6px; font-size:12px; pointer-events:none; }
+.workspace-viewer__canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+.workspace-viewer__canvas canvas:focus-visible {
+  outline: 1px solid var(--cat-signal-tint);
+  outline-offset: -3px;
+}
+.workspace-viewer__topline {
+  position: absolute;
+  top: 24px;
+  left: 25px;
+  right: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  color: var(--cat-dim);
+}
+.workspace-viewer__topline span:first-child {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.workspace-viewer__topline i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cat-signal-tint);
+  box-shadow: 0 0 0 4px var(--cat-signal-tint);
+}
+.workspace-viewer__topline span:last-child {
+  font-family: var(--cat-mono);
+  letter-spacing: 0.2px;
+  font-weight: 400;
+}
+.workspace-viewer__tools {
+  position: absolute;
+  top: 62px;
+  left: 19px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  background: var(--cat-surface-1);
+  border: 1px solid var(--cat-hair);
+  border-radius: 9px;
+  box-shadow: 0 5px 20px #00000015;
+}
+.workspace-viewer__tools button {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--cat-dim);
+  border: 0;
+  border-radius: 5px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  padding: 0;
+}
+.workspace-viewer__tools button:hover {
+  background: var(--cat-surface-3);
+  color: var(--cat-ink);
+}
+.workspace-viewer__tools button.is-active {
+  color: var(--cat-signal-ink);
+  background: var(--cat-signal-tint);
+}
+.workspace-viewer__tools button:focus-visible {
+  outline: 1px solid var(--cat-signal-tint);
+  outline-offset: -1px;
+}
+.workspace-viewer__tools > span {
+  height: 1px;
+  margin: 4px;
+  background: var(--cat-hair);
+}
+.workspace-viewer__footer {
+  position: absolute;
+  left: 24px;
+  bottom: 20px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--cat-dim);
+  pointer-events: none;
+}
+.workspace-viewer__footer b {
+  font-weight: 400;
+  margin: 0 5px;
+  color: var(--cat-dim);
+}
+.workspace-viewer__scale {
+  font-family: var(--cat-mono);
+  white-space: nowrap;
+  color: var(--cat-dim);
+  letter-spacing: 0.25px;
+}
+.workspace-viewer__axis {
+  position: absolute;
+  right: 24px;
+  bottom: 65px;
+  width: 49px;
+  height: 49px;
+  font:
+    600 9px ui-monospace,
+    monospace;
+  pointer-events: none;
+}
+.workspace-viewer__axis i {
+  position: absolute;
+  left: 21px;
+  top: 25px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cat-body);
+}
+.workspace-viewer__axis span {
+  position: absolute;
+}
+.workspace-viewer__axis span:after {
+  content: "";
+  position: absolute;
+  width: 17px;
+  height: 1px;
+  transform-origin: left center;
+  opacity: 0.6;
+}
+.workspace-viewer__axis .axis-z {
+  left: 21px;
+  top: 0;
+  color: var(--cat-body);
+}
+.workspace-viewer__axis .axis-z:after {
+  top: 24px;
+  left: 2px;
+  transform: rotate(-90deg);
+}
+.workspace-viewer__axis .axis-x {
+  right: 0;
+  bottom: 2px;
+  color: var(--cat-signal-ink);
+}
+.workspace-viewer__axis .axis-x:after {
+  left: -18px;
+  top: -4px;
+  transform: rotate(28deg);
+  background: var(--cat-signal-tint);
+}
+.workspace-viewer__axis .axis-y {
+  left: 0;
+  bottom: 2px;
+  color: var(--cat-ok);
+}
+.workspace-viewer__axis .axis-y:after {
+  left: 7px;
+  top: 3px;
+  transform: rotate(-33deg);
+  background: var(--cat-ok-tint);
+}
+.workspace-viewer__axis .axis-z:after {
+  background: var(--cat-body);
+}
+.workspace-viewer__empty,
+.workspace-viewer__fallback {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(320px, 80%);
+  color: var(--cat-dim);
+  pointer-events: none;
+}
+.workspace-viewer__empty > svg,
+.workspace-viewer__fallback > svg {
+  color: var(--cat-signal-ink);
+  margin-bottom: 3px;
+}
+.workspace-viewer__empty strong,
+.workspace-viewer__fallback strong {
+  font-size: 15px;
+  color: var(--cat-body);
+  font-weight: 500;
+}
+.workspace-viewer__empty span,
+.workspace-viewer__fallback span {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.workspace-viewer__fallback {
+  pointer-events: auto;
+}
+.workspace-viewer__errors {
+  position: absolute;
+  top: 65px;
+  left: 75px;
+  right: 25px;
+  border: 1px solid var(--cat-signal-line);
+  background: var(--cat-surface-2);
+  border-radius: 7px;
+  color: var(--cat-signal-ink);
+  padding: 10px 13px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .workspace-viewer {
+    min-height: 360px;
+  }
+  .workspace-viewer__navigation {
+    display: none;
+  }
+  .workspace-viewer__topline {
+    top: 18px;
+    left: 19px;
+    right: 19px;
+  }
+  .workspace-viewer__footer {
+    left: 19px;
+    bottom: 16px;
+  }
+  .workspace-viewer__axis {
+    right: 18px;
+    bottom: 25px;
+  }
+  .workspace-viewer__scale {
+    font-size: 11px;
+  }
+}

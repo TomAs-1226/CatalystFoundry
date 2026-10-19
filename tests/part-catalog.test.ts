@@ -1,0 +1,13 @@
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { getFixturePartOptions, fixtureDefaultSelection, importFixtureParts } from '../src/adapters/onshape';
+import { catalogGroups, matchesPartSearch, workspaceCatalog, workspaceGroups } from '../src/domain/part-catalog';
+import { createJob,createProject } from '../src/domain/model';
+import { deserializeProject,serializeProject } from '../src/domain/persistence';
+import { fingerprint,validateJob } from '../src/domain/invariants';
+const fetcher=async(input:string|URL|Request)=>new Response(readFileSync(new URL(`../public${String(input)}`,import.meta.url)));
+describe('assembly-aware searchable part catalog',()=>{
+ it('counts repeated occurrences per subsystem and searches all words across names, IDs and assembly names',()=>{const parts=getFixturePartOptions(fixtureDefaultSelection);expect(catalogGroups(parts).map(g=>[g.label,g.quantity])).toEqual([['Left intake',8],['Right intake',8]]);const spacer=parts.find(p=>p.id==='spacer')!;expect(matchesPartSearch(spacer,'LEFT jhs')).toBe(true);expect(matchesPartSearch(spacer,'left banana')).toBe(false);expect(spacer.assemblyMemberships?.map(g=>g.quantity)).toEqual([2,2]);});
+ it('persists assembly metadata, separates different root assemblies and binds it to the manufacturing fingerprint',async()=>{const parts=await importFixtureParts(fixtureDefaultSelection,{fetcher,delayMs:0});const p=createProject('Catalog test');p.parts=parts;p.jobs=[createJob(parts)];p.activeJobId=p.jobs[0].id;const reopened=await deserializeProject(serializeProject(p));expect(reopened.parts[0].source.assemblyMemberships).toEqual(parts[0].source.assemblyMemberships);const groups=workspaceGroups(reopened.parts);expect(workspaceCatalog(reopened.parts,'spacer',groups[0].id)).toHaveLength(1);const copy=structuredClone(parts[0]);copy.id='another-root';copy.source.originElementId='different-assembly';expect(workspaceGroups([parts[0],copy])).toHaveLength(4);const before=await fingerprint(p,p.jobs[0]);p.parts[0].source.assemblyScope=['left'];expect(await fingerprint(p,p.jobs[0])).not.toBe(before);});
+ it('rejects overlapping root/subsystem occurrence imports instead of silently double counting',async()=>{const [part]=await importFixtureParts({...fixtureDefaultSelection,partIds:['spacer']},{fetcher,delayMs:0});const copy=structuredClone(part);copy.id='subsystem-copy';copy.quantity=2;copy.source.assemblyScope=['left'];copy.source.occurrences=copy.source.occurrences?.filter(o=>o.path[0]==='left');const p=createProject('Overlap');p.parts=[part,copy];p.jobs=[createJob(p.parts)];await expect(validateJob(p,p.jobs[0],false)).rejects.toThrow(/overlapping assembly imports/);});
+});

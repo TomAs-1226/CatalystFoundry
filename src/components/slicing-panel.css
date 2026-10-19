@@ -1,0 +1,25 @@
+.slice-workflow { flex:none; padding:8px 14px; border-top:1px solid var(--cat-line); background:var(--cat-surface-1); }
+.slice-workflow__bar { display:flex; align-items:center; gap:10px; }
+.slice-workflow__printer { flex:1; min-width:120px; text-align:left; display:flex; flex-direction:column; gap:3px; color:var(--cat-ink-strong); cursor:pointer; }
+.slice-workflow__printer strong { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.slice-workflow__printer span { font-size:11px; color:var(--cat-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.slice-workflow .checkline { font-size:12px; margin:0; white-space:nowrap; }
+.slice-workflow > progress { display:block; width:100%; height:4px; margin:6px 0 0; accent-color:var(--cat-signal); }
+.slice-workflow__status { display:flex; align-items:center; gap:12px; min-height:20px; font-size:11px; color:var(--cat-dim); }
+.slice-workflow__status > span:first-child { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; flex:1; }
+.slice-settings-drawer { position:fixed; inset:auto 14px 98px auto; margin:0; width:min(320px,calc(100vw - 28px)); max-height:calc(100dvh - 170px); overflow:auto; padding:0; color:var(--cat-ink); background:var(--cat-surface-1); border:1px solid var(--cat-line-strong); border-radius:14px; box-shadow:var(--cat-glass-shadow); }
+.slice-settings-drawer .drawer-heading { top:0; }
+.slice-settings-body { padding:14px; display:flex; flex-direction:column; gap:14px; }
+.slice-settings-body .field,.slice-settings-body p { margin:0; }
+.slice-settings-body .checkline { display:flex; align-items:center; gap:8px; font-size:12px; }
+.slice-settings-body select { width:100%; }
+.slice-settings-body details > summary { cursor:pointer; font-size:12px; padding:5px 0; }
+.slice-settings-body details > .field { margin-top:10px; }
+.slice-settings-body .smalltext { font-size:11px; line-height:1.5; }
+.slice-workflow__checks { display:flex; flex-direction:column; gap:8px; font-size:12px; }
+.slice-workflow__checks button { text-align:left; justify-content:space-between; white-space:normal; }
+.slice-workflow__checks button span { text-decoration:underline; }
+.slice-workflow__details { font-size:12px; border-top:1px solid var(--cat-line); padding-top:10px; }
+.slice-workflow__details .slicer-logs { max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+.toolpath-preview-notice { padding:6px 14px; font-size:11px; background:var(--cat-surface-1); color:var(--cat-ink-strong); }
+@media(max-width:1000px) { .slice-workflow__bar { gap:6px; } .slice-workflow__bar .btn { padding:6px 10px; font-size:12px; } }
