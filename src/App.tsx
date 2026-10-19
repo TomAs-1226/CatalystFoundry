@@ -233,6 +233,7 @@ export default function App() {
   const [connectSetupOpen,setConnectSetupOpen]=useState(false);
   const [updatesOpen,setUpdatesOpen]=useState(false);
   const [updateReady,setUpdateReady]=useState(false);
+  const [restarting,setRestarting]=useState(false);
   useEffect(()=>{let live=true;const refresh=()=>void fetch('/api/desktop/updates').then(r=>r.json()).then(status=>{if(live)setUpdateReady(status.phase==='ready');}).catch(()=>{});refresh();const timer=setInterval(refresh,30_000);return()=>{live=false;clearInterval(timer);};},[]);
   const [supportAdvice,setSupportAdvice]=useState<{jobId:string;reason:string}>();
   const [generatedPreview, setGeneratedPreview] = useState<{projectId:string;jobId:string;slice:SliceJob}>();
@@ -893,7 +894,7 @@ export default function App() {
   if (initializing) return <StartupScreen animate={!desktopStartupComplete} ready={startupWorkspaceReady}/>;
   return (
     <div className={`app guided-app page-${page}`}>
-      <div className="shell" inert={busy} aria-busy={busy}>
+      <div className="shell" inert={busy||restarting} aria-busy={busy||restarting}>
         <header className="topbar">
           <div className="brand"><Hexagon size={19}/><strong>Foundry</strong><span className="brand-parent">Catalyst</span></div>
           <div className="header-project"><h1>{project.name}</h1>{project.parts.some(part=>part.source.kind==='fixture')&&<span className="header-demo">Fixture · non-manufacturable</span>}</div>
@@ -3247,7 +3248,7 @@ export default function App() {
         </Modal>
       )}
       {connectSetupOpen&&<Modal title="Connect a Bambu printer" subtitle="Install the official companion, then choose cloud login or LAN-only pairing." onClose={()=>setConnectSetupOpen(false)}><BambuConnectSetup/></Modal>}
-      {updatesOpen&&<Modal title="App updates" subtitle="Signed internal releases, with a restart when you are ready." onClose={()=>setUpdatesOpen(false)}><AppUpdates canRestart={!busy&&!slicingActive} onSave={saveProject}/></Modal>}
+      {updatesOpen&&<Modal title="App updates" subtitle="Signed internal releases, with a restart when you are ready." onClose={()=>setUpdatesOpen(false)}><AppUpdates canRestart={!busy&&!slicingActive&&!restarting} onSave={saveProject} onRestartLock={setRestarting}/></Modal>}
       {toast && (
         <div className="toast" role="status">
           <CheckCircle2 size={16} />

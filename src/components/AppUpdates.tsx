@@ -1,15 +1,16 @@
 import {useEffect,useState} from 'react';
 import type {UpdateStatus} from '../../server/desktop-updates';
-export function AppUpdates({canRestart,onSave}:{canRestart:boolean;onSave:()=>Promise<boolean>}){
+import {restartUpdate} from './restart-update';
+export function AppUpdates({canRestart,onSave,onRestartLock}:{canRestart:boolean;onSave:()=>Promise<boolean>;onRestartLock:(locked:boolean)=>void}){
  const [status,setStatus]=useState<UpdateStatus>(),[error,setError]=useState(''),[working,setWorking]=useState(false);
  const read=async()=>{const response=await fetch('/api/desktop/updates');if(!response.ok)throw Error('Update status is unavailable.');setStatus(await response.json());};
  useEffect(()=>{let live=true;const refresh=()=>void fetch('/api/desktop/updates').then(r=>r.json()).then(value=>{if(live)setStatus(value);}).catch(error=>{if(live)setError(error.message);});refresh();const timer=setInterval(refresh,1500);return()=>{live=false;clearInterval(timer);};},[]);
  const action=async(kind:'check'|'download'|'install')=>{
   setWorking(true);setError('');
   try{
-   if(kind==='install'&&(!canRestart||!await onSave()))throw Error('Save the current project before restarting. Resolve any save error and retry.');
-   const response=await fetch('/api/desktop/updates/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(kind==='install'?{confirmRestart:true}:{})});
-   const value=await response.json();if(!response.ok)throw Error(value.error??'Update action failed.');setStatus(value);
+   const request=async()=>{const response=await fetch('/api/desktop/updates/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(kind==='install'?{confirmRestart:true}:{})});
+   const value=await response.json();if(!response.ok)throw Error(value.error??'Update action failed.');if(kind==='install'&&value.phase!=='installing')throw Error('The update did not begin. Retry App updates.');setStatus(value);};
+   if(kind==='install')await restartUpdate({canRestart,save:onSave,lock:onRestartLock,install:request});else await request();
   }catch(error){setError((error as Error).message);await read().catch(()=>{});}finally{setWorking(false);}
  };
  const active=working||['checking','downloading','installing'].includes(status?.phase??'');

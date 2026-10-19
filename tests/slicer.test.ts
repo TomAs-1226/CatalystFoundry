@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { syntheticMachine, syntheticFilament, syntheticProcess } from './fixtures/slicing-profile-fixtures';
+import {canonicalWorkDirectory} from '../server/work-directory';
 import { BAMBU_TARGET_VERSION, BambuStudioCliAdapter, runCommand, SlicingService, type BambuCliConfig, type CommandRunner, type SliceContext, type SliceRequest, type SliceResult, type SlicerAdapter } from '../server/slicer';
 const hash = (value: string | Uint8Array) => createHash('sha256').update(value).digest('hex');
 const gcode = 'G21\nG90\nM83\nG0 Z0.2\n;TYPE:Outer wall\nG1 X10 E1\n';
@@ -90,7 +91,9 @@ describe('separate slicing worker', () => {
 });
 describe('version-pinned Bambu CLI boundary (injected runner, no real Bambu execution)', () => {
   async function setup(runner: CommandRunner) {
-    const dir = await temp(); const executable = join(dir, 'bambu-test'); await writeFile(executable, 'injected executable placeholder'); await chmod(executable, 0o700);
+    // Hosted Windows exposes Temp through an 8.3 alias. Match production's
+    // write-verified canonical root before constructing input/output paths.
+    const dir = await canonicalWorkDirectory(await temp()); const executable = join(dir, 'bambu-test'); await writeFile(executable, 'injected executable placeholder'); await chmod(executable, 0o700);
     const profile = async (name: string) => { const path = join(dir, name + '.json'); const text = JSON.stringify(name==='machine'?syntheticMachine:name==='filament'?syntheticFilament:syntheticProcess); await writeFile(path, text); return { path, sha256: hash(text) }; };
     const config: BambuCliConfig = { executable, executableSha256: hash('injected executable placeholder'), version: BAMBU_TARGET_VERSION, machine: await profile('machine'), filament: await profile('filament'), process: await profile('process'), completeProfilesReviewed: true as const, workRoot: dir };
     const adapter = new BambuStudioCliAdapter(config, runner); const input = join(dir, 'prepared.stl'); await writeFile(input, 'prepared geometry test bytes');

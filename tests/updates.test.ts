@@ -7,9 +7,16 @@ import {join,dirname,basename} from 'node:path';
 import {once} from 'node:events';
 import express from 'express';
 import {registerUpdateRoutes} from '../server/desktop-updates';
+import {restartUpdate} from '../src/components/restart-update';
 const require=createRequire(import.meta.url);
 const {createUpdateHost,validateManifest,canonicalPayload,compareVersions,releaseUrl,vendorResponse}=require('../electron/updates.cjs');
 const keys=generateKeyPairSync('ed25519'),publicKey=keys.publicKey.export({type:'spki',format:'pem'});
+it('locks edits between a successful save and native restart readiness, and unlocks on helper failure',async()=>{
+ const sequence:string[]=[];
+ await restartUpdate({canRestart:true,save:async()=>{sequence.push('saved');return true;},lock:locked=>sequence.push('lock:'+locked),install:async()=>{sequence.push('install');}});expect(sequence).toEqual(['saved','lock:true','install']);
+ sequence.length=0;await expect(restartUpdate({canRestart:true,save:async()=>true,lock:locked=>sequence.push('lock:'+locked),install:async()=>{throw Error('helper unavailable');}})).rejects.toThrow('helper unavailable');expect(sequence).toEqual(['lock:true','lock:false']);
+ sequence.length=0;await expect(restartUpdate({canRestart:true,save:async()=>false,lock:locked=>sequence.push('lock:'+locked),install:async()=>{sequence.push('install');}})).rejects.toThrow(/Save/);expect(sequence).toEqual([]);
+});
 const installer=Buffer.from('SOFTWARE-ONLY installer bytes, never executable'),sha256=createHash('sha256').update(installer).digest('hex');
 function signed(version='0.2.0'){
  const payload={schemaVersion:1,channel:'internal',version,platform:'win32',arch:'x64',url:releaseUrl(version,`Catalyst-Foundry-${version}-x64-Setup.exe`),size:installer.length,sha256,releasedAt:'2026-10-19T00:00:00.000Z'};
