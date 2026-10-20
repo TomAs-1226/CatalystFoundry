@@ -11,7 +11,7 @@ if(spawnSync('/usr/sbin/sysctl',['-n','hw.optional.arm64'],{encoding:'utf8'}).st
 if(!process.env.npm_execpath)throw Error('Run npm run dist:mac -- with the required arguments.');
 if(!values['bambu-dmg']||!values['bambu-source'])throw Error('Provide the pinned DMG and source tar.gz. No account or download is created by this build.');
 if(!values['unsigned-local']&&!process.env.CSC_NAME)throw Error('Set CSC_NAME to an existing Developer ID Application identity, or explicitly select --unsigned-local for local QA only.');
-run(process.execPath,['--import','tsx','scripts/macos/prepare-bambu.ts',arch,resolve(values['bambu-dmg']),resolve(values['bambu-source'])],{stdio:'inherit'});
+run(process.execPath,['--import','tsx','scripts/macos/prepare-bambu.ts',arch,resolve(values['bambu-dmg']),resolve(values['bambu-source']),...(values['unsigned-local']?['--unsigned-local']:[])],{stdio:'inherit'});
 run(process.execPath,['scripts/macos/prepare-icon.mjs']);
 run(process.execPath,[process.env.npm_execpath,'test'],{stdio:'inherit'});
 run(process.execPath,[process.env.npm_execpath,'run','desktop:prepare'],{stdio:'inherit'});
@@ -22,6 +22,7 @@ run(process.execPath,['--import','tsx','scripts/macos/verify-runtime.ts',applica
 if(!values['unsigned-local'])run('/usr/bin/codesign',['--verify','--deep','--strict',application]);
 const artifacts=[];for(const name of await readdir(output))if(/\.(?:dmg|zip)$/.test(name))artifacts.push({name,sha256:await hashFile(join(output,name))});
 if(artifacts.length!==2)throw Error('Expected one DMG and one ZIP; keep the output directory fresh for each build.');
+const runtimeTrust=JSON.parse(await readFile(join(root,'.build-cache',`mac-runtime-${arch}.json`),'utf8'));
 const pkg=JSON.parse(await readFile(join(root,'package.json'),'utf8'));
-await writeFile(join(output,'package-build.json'),JSON.stringify({version:pkg.version,platform:'darwin',arch,...provenance,artifacts,signed:!values['unsigned-local'],notarized:false,nativeLaunchVerified:false,slicingVerified:false},null,2)+'\n');
+await writeFile(join(output,'package-build.json'),JSON.stringify({version:pkg.version,platform:'darwin',arch,...provenance,artifacts,signed:!values['unsigned-local'],notarized:false,vendorGatekeeperAccepted:runtimeTrust.vendorGatekeeperAccepted,trustLimitation:runtimeTrust.trustLimitation,nativeLaunchVerified:false,slicingVerified:false},null,2)+'\n');
 console.log('Native packages built. Notarization, installation, two launches and native slicing remain separate required checks.');

@@ -36,7 +36,7 @@ jobs:
           curl --fail --location --retry 3 --proto '=https' --output .build-cache/bambu-source.tar.gz 'https://codeload.github.com/bambulab/BambuStudio/tar.gz/refs/tags/v02.08.02.61'
       - name: Verify native runtime and complete profiles
         if: inputs.stage == 'runtime'
-        run: node --import tsx scripts/macos/prepare-bambu.ts '${{ matrix.arch }}' .build-cache/bambu.dmg .build-cache/bambu-source.tar.gz
+        run: node --import tsx scripts/macos/prepare-bambu.ts '${{ matrix.arch }}' .build-cache/bambu.dmg .build-cache/bambu-source.tar.gz --unsigned-local
       - name: Build unsigned native QA package
         if: inputs.stage == 'package'
         run: npm run dist:mac -- --arch '${{ matrix.arch }}' --bambu-dmg .build-cache/bambu.dmg --bambu-source .build-cache/bambu-source.tar.gz --unsigned-local

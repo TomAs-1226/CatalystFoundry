@@ -1,5 +1,6 @@
 /** Native Mac build preparation only. No account, network plugin or printer access. */
 import {mkdir,mkdtemp,readdir,readFile,writeFile,readlink,realpath,open,copyFile} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
 import {join,resolve,relative} from 'node:path';
 import {prepareBambuProfiles} from '../prepare-bambu-profiles';
 import {hashBytes,isPathInside} from '../../server/slicing-config';
@@ -7,7 +8,7 @@ import {verifyRuntime} from '../../server/bundled-slicer';
 // @ts-expect-error Native build tools are deliberately dependency-free JavaScript.
 import {nativeMacTarget,run,hashFile,bambuMac} from './native-tools.mjs';
 
-const [arch,dmgArgument,sourceArgument]=process.argv.slice(2);nativeMacTarget(arch);
+const [arch,dmgArgument,sourceArgument,qaFlag]=process.argv.slice(2);const unsignedQA=qaFlag==='--unsigned-local';if(qaFlag&&!unsignedQA)throw Error('Unknown native preparation option.');nativeMacTarget(arch);
 if(!dmgArgument||!sourceArgument)throw Error('Supply the pinned Bambu DMG and source tar.gz. See docs/MACOS.md.');
 const root=resolve('.'),dmg=resolve(dmgArgument),source=resolve(sourceArgument);
 if(await hashFile(dmg)!==bambuMac.dmgSha256||await hashFile(source)!==bambuMac.sourceSha256)throw Error('Official Mac runtime/source archive hash mismatch.');
@@ -26,8 +27,11 @@ try{
  const executable=run('/usr/bin/plutil',['-extract','CFBundleExecutable','raw','-o','-',plist]).trim();
  const version=run('/usr/bin/plutil',['-extract','CFBundleVersion','raw','-o','-',plist]).trim();
  console.log('Vendor bundle identity: '+JSON.stringify({executable,version,shortVersion:run('/usr/bin/plutil',['-extract','CFBundleShortVersionString','raw','-o','-',plist]).trim()}));
- run('/usr/sbin/spctl',['--assess','--type','execute','--verbose=4',vendor]);
- const normalizedVersion=version.match(/\d+\.\d+\.\d+\.\d+/)?.[0].split('.').map(Number).join('.');
+ const assessment=spawnSync('/usr/sbin/spctl',['--assess','--type','execute','--verbose=4',vendor],{encoding:'utf8',timeout:60000});
+ const vendorGatekeeperAccepted=assessment.status===0;
+ if(!vendorGatekeeperAccepted){const message=String(assessment.stderr);if(!unsignedQA||assessment.status!==3||!message.includes('source=Unnotarized Developer ID'))throw Error('Vendor Gatekeeper assessment failed: '+message);console.log('UNSIGNED QA ONLY: vendor Gatekeeper trust FAILED (Unnotarized Developer ID). No security settings changed.');}
+ const shortVersion=run('/usr/bin/plutil',['-extract','CFBundleShortVersionString','raw','-o','-',plist]).trim();
+ const normalizedVersion=shortVersion.match(/\d+\.\d+\.\d+\.\d+/)?.[0].split('.').map(Number).join('.');
  if(executable!=='BambuStudio'||normalizedVersion!==bambuMac.version)throw Error('Pinned vendor executable/version does not match: '+JSON.stringify({executable,version,shortVersion:run('/usr/bin/plutil',['-extract','CFBundleShortVersionString','raw','-o','-',plist]).trim()}));
  const cpuArch=arch==='x64'?'x86_64':'arm64';
  const executableArchitectures=run('/usr/bin/lipo',['-archs',join(vendor,'Contents/MacOS/BambuStudio')]).trim().split(/\s+/).map((v:string)=>v==='x86_64'?'x64':v);
@@ -58,6 +62,6 @@ try{
  await copyFile(source,join(licenses,'BambuStudio-v02.08.02.61-source.tar.gz'));
  run('/usr/bin/tar',['-xf',source,'-C',licenses,'BambuStudio-02.08.02.61/LICENSE']);
  await copyFile(join(root,'docs/MACOS.md'),join(licenses,'MACOS.md'));
- await writeFile(join(root,'.build-cache',`mac-runtime-${arch}.json`),JSON.stringify({version,arch,architectures,executableArchitectures,machOBinaries,fileCount:files.length,manifestSha256,vendorSignatureVerified:true,offlineSliceVerified:false},null,2)+'\n');
+ await writeFile(join(root,'.build-cache',`mac-runtime-${arch}.json`),JSON.stringify({version,arch,architectures,executableArchitectures,machOBinaries,fileCount:files.length,manifestSha256,vendorSignatureVerified:true,vendorGatekeeperAccepted,trustLimitation:vendorGatekeeperAccepted?null:'Unnotarized Developer ID; unsigned QA only',offlineSliceVerified:false},null,2)+'\n');
  console.log(`Prepared ${arch}: ${files.length} pinned files; ${machOBinaries} Mach-O architectures checked. Native slicing is still untested.`);
 }finally{if(attached)run('/usr/bin/hdiutil',['detach',mount]);}
