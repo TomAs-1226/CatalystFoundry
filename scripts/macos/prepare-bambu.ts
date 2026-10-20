@@ -13,7 +13,7 @@ const root=resolve('.'),dmg=resolve(dmgArgument),source=resolve(sourceArgument);
 if(await hashFile(dmg)!==bambuMac.dmgSha256||await hashFile(source)!==bambuMac.sourceSha256)throw Error('Official Mac runtime/source archive hash mismatch.');
 const output=join(root,`vendor/bambu-macos-${arch}`),licenses=join(root,'vendor/licenses-macos');
 // A fresh directory prevents leftover files from becoming trusted runtime input.
-await mkdir(output);await mkdir(licenses,{recursive:true});await mkdir(join(root,'.build-cache'),{recursive:true});
+await mkdir(join(root,'vendor'),{recursive:true});await mkdir(output);await mkdir(licenses,{recursive:true});await mkdir(join(root,'.build-cache'),{recursive:true});
 const mount=await mkdtemp(join(root,'.build-cache/mac-mount-'));
 let attached=false;
 try{
