@@ -10,7 +10,7 @@ import {hashBytes} from '../server/slicing-config';
 import {nativeMacTarget,bambuMac,sourceIdentity} from '../scripts/macos/native-tools.mjs';
 // @ts-expect-error Lossless icon-container conversion is a JavaScript build tool.
 import {icnsFromIco} from '../scripts/macos/prepare-icon.mjs';
-const require=createRequire(import.meta.url),{macConfiguration}=require('../packaging/electron-builder.mac.cjs');
+const require=createRequire(import.meta.url),{macConfiguration}=require('../packaging/mac-configuration.cjs');
 async function temporary(task:(directory:string)=>Promise<void>){const directory=await mkdtemp(join(tmpdir(),'foundry-mac-test-'));try{await task(directory);}finally{await rm(directory,{recursive:true,force:true});}}
 async function runtime(directory:string,mac=false){
  const entries=[{path:mac?'BambuStudio.app/Contents/MacOS/BambuStudio':'bambu-studio.exe',data:Buffer.alloc(1024*1024+37,23)},{path:mac?'BambuStudio.app/Contents/Info.plist':'BambuStudio.dll',data:Buffer.from('SYNTHETIC NON-EXECUTABLE RUNTIME')},{path:'catalog.json',data:Buffer.from('[]')}];
@@ -28,6 +28,7 @@ it('gates native Mac builds and Windows NSIS/companion actions by actual platfor
 });
 it('validates separate Mac targets, exact native runtime inclusion and signing policy against the pinned builder',async()=>{
  const {validateConfiguration}=require('app-builder-lib/out/util/config/config');
+ await validateConfiguration(require('../packaging/electron-builder.mac.cjs'),{isEnabled:false,add(){}});
  for(const arch of ['arm64','x64'])for(const unsigned of [false,true]){
   const config=macConfiguration(arch,unsigned);await validateConfiguration(config,{isEnabled:false,add(){}});
   expect(config.publish).toBeNull();expect(config.win).toBeUndefined();expect(config.nsis).toBeUndefined();
