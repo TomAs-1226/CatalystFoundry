@@ -1,3 +1,4 @@
+import {nativeOutput} from './helpers/native-output';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -104,7 +105,7 @@ describe('version-pinned Bambu CLI boundary (injected runner, no real Bambu exec
     let recorded: string[] = [];
     const { adapter, sliceRequest } = await setup(async (_exe, args) => {
       if (args[0] === '--help') return { code: 0, output: help };
-      recorded = args; const output = args[args.indexOf('--export-3mf') + 1]; await writeFile(output, zipSync({ 'Metadata/plate_1.gcode': strToU8(gcode) })); return { code: 0, output: 'Injected test result.' };
+      recorded = args; const output = nativeOutput(args); await writeFile(output, zipSync({ 'Metadata/plate_1.gcode': strToU8(gcode) })); return { code: 0, output: 'Injected test result.' };
     });
     expect((await adapter.capability()).available).toBe(true);
     const output = await adapter.slice(sliceRequest, { signal: new AbortController().signal, log: () => {}, progress: () => {} });

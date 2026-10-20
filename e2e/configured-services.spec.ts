@@ -1,3 +1,4 @@
+import {nativeOutput} from '../tests/helpers/native-output';
 import { openSettings, openSlicingSettings, openProjectMenu, openCameraOptions, openParts } from './navigation';
 import { test, expect, type Page } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile, readFile, chmod, rm } from 'node:fs/promises';
@@ -69,7 +70,7 @@ async function startServices(page: Page) {
     options.onLog?.('Explicit synthetic CLI runner: no Bambu executable or machine was used.');
     if (sliceMode === 'hold') await new Promise<void>((resolve, reject) => { options.signal?.addEventListener('abort', () => reject(new Error('Synthetic slicing cancelled')), { once: true }); });
     if (sliceMode === 'fail') return { code: 42, output: 'Synthetic configured-slicer failure' };
-    const output = args[args.indexOf('--export-3mf') + 1];
+    const output = nativeOutput(args);
     await mkdir(path.dirname(output), { recursive: true });
     await writeFile(output, zipSync({ 'Metadata/plate_1.gcode': strToU8(syntheticGcode), 'Metadata/test-provenance.txt': strToU8('Synthetic browser regression, not real slicing.') }));
     return { code: 0, output: 'Synthetic worker wrote its test archive.' };
