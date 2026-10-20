@@ -59,3 +59,6 @@ jobs:
             release/mac-${{ matrix.arch }}/*.dmg
             release/mac-${{ matrix.arch }}/*.zip
             release/mac-${{ matrix.arch }}/package-build.json
+      - name: Diagnose runtime inventory failures without changing verification
+        if: failure()
+        run: node scripts/macos/diagnose-runtime.mjs '${{ matrix.arch }}'
