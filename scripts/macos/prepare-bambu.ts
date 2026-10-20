@@ -22,10 +22,11 @@ try{
  if(candidates.length!==1||candidates[0]!=='BambuStudio.app')throw Error('Unexpected official DMG application layout.');
  const vendor=join(output,'BambuStudio.app');run('/usr/bin/ditto',[join(mount,candidates[0]),vendor]);
  run('/usr/bin/codesign',['--verify','--deep','--strict',vendor]);
- run('/usr/sbin/spctl',['--assess','--type','execute',vendor]);
  const plist=join(vendor,'Contents/Info.plist');
  const executable=run('/usr/bin/plutil',['-extract','CFBundleExecutable','raw','-o','-',plist]).trim();
  const version=run('/usr/bin/plutil',['-extract','CFBundleVersion','raw','-o','-',plist]).trim();
+ console.log('Vendor bundle identity: '+JSON.stringify({executable,version,shortVersion:run('/usr/bin/plutil',['-extract','CFBundleShortVersionString','raw','-o','-',plist]).trim()}));
+ run('/usr/sbin/spctl',['--assess','--type','execute','--verbose=4',vendor]);
  const normalizedVersion=version.match(/\d+\.\d+\.\d+\.\d+/)?.[0].split('.').map(Number).join('.');
  if(executable!=='BambuStudio'||normalizedVersion!==bambuMac.version)throw Error('Pinned vendor executable/version does not match: '+JSON.stringify({executable,version,shortVersion:run('/usr/bin/plutil',['-extract','CFBundleShortVersionString','raw','-o','-',plist]).trim()}));
  const cpuArch=arch==='x64'?'x86_64':'arm64';
