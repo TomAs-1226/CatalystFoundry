@@ -50,7 +50,7 @@ try{
    }else if(entry.isDirectory())await inventory(file);
    else if(entry.isFile()){
     const handle=await open(file,'r'),magic=Buffer.alloc(4);try{await handle.read(magic,0,4,0);}finally{await handle.close();}
-    if(['feedface','feedfacf','cefaedfe','cffaedfe','cafebabe','bebafeca','cafebabf','bfbafeca'].includes(magic.toString('hex'))){run('/usr/bin/lipo',['-verify_arch',cpuArch,file]);machOBinaries++;}
+    if(['feedface','feedfacf','cefaedfe','cffaedfe','cafebabe','bebafeca','cafebabf','bfbafeca'].includes(magic.toString('hex'))){run('/usr/bin/lipo',[file,'-verify_arch',cpuArch]);machOBinaries++;}
     files.push({path:name,sha256:await hashFile(file)});
    }else throw Error('Unsupported native runtime entry.');
   }
