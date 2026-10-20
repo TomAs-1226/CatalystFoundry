@@ -21,13 +21,13 @@ export async function createApp(options:{updates?:UpdateHost;sync?:SyncOptions;p
  const onshape=createConfiguredOnshapeService({...onshapeOptions,onImported:async(parts,selection)=>{const result=await library.saveParts(parts,selection);void library.kick();return result;}});
  const printing=new PrintingService(directory,slicingContext,options.printing,sync);
  const printerStatus=await new PrinterStatusService(directory,options.sync?.vault).load();
- const app=express();app.locals.shutdown=async()=>{library.stop();sync.records.stop();onshape.shutdown();await slicingContext.service.shutdown()};app.disable('x-powered-by');app.use('/api/project',express.json({limit:'100mb'}));app.use(express.json({limit:'35mb'}));
+ const app=express();app.locals.shutdown=async()=>{library.stop();sync.records.stop();onshape.shutdown();await slicingContext.ready;await slicingContext.service.shutdown()};app.disable('x-powered-by');app.use('/api/project',express.json({limit:'100mb'}));app.use(express.json({limit:'35mb'}));
  // Local-only service: no accounts or secrets; same-origin browser mutations only.
  app.use('/api',(req,res,next)=>{res.setHeader('Cache-Control','no-store');const origin=req.headers.origin;if(origin&&origin!==`${req.protocol}://${req.headers.host}`&&!/^http:\/\/(localhost|127\.0\.0\.1):5173$/.test(origin)){res.status(403).json({error:'This local service accepts same-origin requests only.'});return}next()});
  app.get('/api/capabilities',async(_req,res,next)=>{try{res.json({onshape:await onshape.capability(),slicing:await slicingContext.service.getCapability(),handoff:{...await printing.capability(),mode:'bambu-connect-native-review',printerStatus:'unknown'},laser:{available:false,reason:'No laser machine selected.'}})}catch(e){next(e)}});
  registerOnshapeRoutes(app,onshape);
  registerPreferences(app,directory);
- registerUpdateRoutes(app,options.updates,()=>slicingContext.service.listJobs().some(job=>['queued','running'].includes(job.status)));
+ registerUpdateRoutes(app,options.updates,()=>!!slicingContext.initializing||slicingContext.service.listJobs().some(job=>['queued','running'].includes(job.status)));
  registerCadLibraryRoutes(app,library);await library.start();
  registerSyncRoutes(app,sync,()=>{onshape.resetConnection();sync.records.kick();});sync.records.start();void printing.recoverReports().catch(()=>{});
  app.get('/api/project',async(_req,res,next)=>{try{let data:string;try{data=await readFile(store,'utf8')}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT'){res.json({project:null});return}throw e}res.json({project:await deserializeProject(data)})}catch(e){next(e)}});

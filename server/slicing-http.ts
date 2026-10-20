@@ -17,10 +17,12 @@ import { canonicalWorkDirectory } from './work-directory';
 import {bambuOptions,bambuOptionsVersion} from '../src/domain/bambu-settings';
 export interface PreparedSlice { preparationId:string;manifestHash:string;profileBundleHash:string;preparedInputSha256:string;slicer:Job['slicer'];warnings:string[]; }
 interface PreparationRecord extends PreparedSlice { request:SliceRequest; }
-export interface SlicingContext {service:SlicingService;config?:SlicingFileConfig;configurationError?:string;workRoot:string;runner?:CommandRunner;bundledDirectory?:string;dataDirectory?:string;reconfiguring?:boolean;}
+export interface SlicingContext {service:SlicingService;config?:SlicingFileConfig;configurationError?:string;workRoot:string;runner?:CommandRunner;bundledDirectory?:string;dataDirectory?:string;reconfiguring?:boolean;ready?:Promise<void>;initializing?:boolean;}
 /** Trusted host configuration, never a browser-supplied executable/path. No printer connection exists. */
-export async function createConfiguredSlicing(dataDirectory:string, options:{configPath?:string;config?:SlicingFileConfig;runner?:CommandRunner;bundledDirectory?:string}={}):Promise<SlicingContext> {
- let config=options.config, configurationError:string|undefined,runtimeVerifiedHere=false;
+export async function createConfiguredSlicing(dataDirectory:string, options:{configPath?:string;config?:SlicingFileConfig;runner?:CommandRunner;bundledDirectory?:string;deferInitialization?:boolean}={}):Promise<SlicingContext> {
+ const context:SlicingContext={service:undefined as unknown as SlicingService,workRoot:join(dataDirectory,'slicer-work'),runner:options.runner,bundledDirectory:options.bundledDirectory,dataDirectory,initializing:true};
+ let config=options.config,configurationError:string|undefined,runtimeVerifiedHere=false;
+ const ready=(async()=>{
  try {
   const configPath=options.configPath??process.env.CATALYST_SLICER_CONFIG;
   if(!config&&configPath){if(!isAbsolute(configPath))throw new Error('CATALYST_SLICER_CONFIG must be an absolute JSON file path.');config=JSON.parse(await readFile(configPath,'utf8')) as SlicingFileConfig;}
@@ -30,19 +32,20 @@ export async function createConfiguredSlicing(dataDirectory:string, options:{con
   if(config?.runtime&&!runtimeVerifiedHere)await verifyRuntime(config.runtime.directory,config.runtime.sha256);
   if(config){config.bedType=config.printer?.plate;if(!isAbsolute(config.workRoot))throw new Error('Slicer workRoot must be an absolute dedicated directory.');config={...config,workRoot:await canonicalWorkDirectory(config.workRoot)};validateConfiguredProfiles(config,await readPinnedProfile(config.machine,'machine'),await readPinnedProfile(config.filament,'filament'));}
  }catch(error){configurationError=(error as Error).message;config=undefined;}
- const selected=config;
- const adapter:SlicerAdapter=selected?{
-  capability:()=>new BambuStudioCliAdapter(selected,options.runner).capability(),
-  slice:async(request,context)=>{
-   if(!request.processSettings)throw new Error('A slicing request must include the exact process settings.');
-   const resolved=await resolvedConfig(selected,request.processSettings,request.materialColor??selected.material.color);
-   return new BambuStudioCliAdapter(resolved,options.runner).slice(request,context);
-  },
- }:configurationError?{capability:async()=>({available:false,adapter:'Bambu Studio CLI',version:null,reason:configurationError!,limitations:['Correct the local configuration, restart Foundry, then rerun an offline smoke slice.']}),slice:async()=>{throw new Error(configurationError);}}:new UnavailableSlicerAdapter();
- const workRoot=selected?.workRoot??join(dataDirectory,'slicer-work');await mkdir(workRoot,{recursive:true});
- return {service:await SlicingService.open({adapter,statePath:join(dataDirectory,'slicing-jobs.json')}),config:selected,configurationError,workRoot,runner:options.runner,bundledDirectory:options.bundledDirectory,dataDirectory};
+  context.config=config;context.configurationError=configurationError;context.workRoot=config?.workRoot??join(dataDirectory,'slicer-work');await mkdir(context.workRoot,{recursive:true});
+ })().catch(error=>{context.config=undefined;context.configurationError=(error as Error).message;}).finally(()=>{context.initializing=false;});
+ context.ready=ready;
+ const adapter:SlicerAdapter={
+  capability:async()=>{await ready;const selected=context.config;if(selected)return new BambuStudioCliAdapter(selected,options.runner).capability();return context.configurationError?{available:false,adapter:'Bambu Studio CLI',version:null,reason:context.configurationError,limitations:['Correct the local configuration, restart Foundry, then rerun an offline smoke slice.']}:new UnavailableSlicerAdapter().capability();},
+  slice:async(request,sliceContext)=>{await ready;const selected=context.config;if(!selected)throw Error(context.configurationError??'Select and review a complete slicer profile first.');if(!request.processSettings)throw Error('A slicing request must include the exact process settings.');const resolved=await resolvedConfig(selected,request.processSettings,request.materialColor??selected.material.color);return new BambuStudioCliAdapter(resolved,options.runner).slice(request,sliceContext);},
+ };
+ context.service=await SlicingService.open({adapter,statePath:join(dataDirectory,'slicing-jobs.json')});
+ if(!options.deferInitialization)await ready;
+ return context;
 }
+
 export async function slicingProfile(context:SlicingContext,settings:ProcessSettings,materialColor=context.config?.material.color) {
+ await context.ready;
  if(!context.config)throw new Error((await context.service.getCapability()).reason);
  const config=await resolvedConfig(context.config,settings,materialColor);const adapter=new BambuStudioCliAdapter(config,context.runner);
  const capability=await adapter.capability();if(!capability.available)throw new Error(capability.reason);
@@ -84,6 +87,7 @@ export async function prepareSlicing(context:SlicingContext,project:Project,jobI
  await writeFile(join(directory,'preparation.json'),JSON.stringify(record),{mode:0o600});return prepared;
 }
 export function registerSlicingRoutes(app:Express,context:SlicingContext) {
+ app.use('/api/slicing',async(_req,_res,next)=>{try{await context.ready;next();}catch(error){next(error);}});
  app.get('/api/slicing/bundled',async(_req,res,next)=>{try{const profiles=context.bundledDirectory?await bundledCatalog(context.bundledDirectory):[];const selected=profiles.find(profile=>isDeepStrictEqual(profile.printer,context.config?.printer)&&isDeepStrictEqual(profile.material,context.config?.material)&&profile.files.machine.sha256===context.config?.machine.sha256&&profile.files.filament.sha256===context.config?.filament.sha256);res.json({installed:!!context.bundledDirectory,version:context.bundledDirectory?'2.8.2.61':null,selectedProfileId:selected?.id??'',profiles});}catch(e){next(e)}});
  app.post('/api/slicing/bundled/select',async(req,res,next)=>{
   if(context.reconfiguring){res.status(409).json({error:'Profile selection is already in progress.'});return;}

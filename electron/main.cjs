@@ -185,7 +185,7 @@ async function start() {
     updates,
     sync: smoke||demo ? {} : { defaultUrl: 'https://catalyst-foundry-sync.catalyst-foundry-sync.workers.dev', vault: safeStorage.isEncryptionAvailable() ? {encrypt:value=>safeStorage.encryptString(value).toString('base64'),decrypt:value=>safeStorage.decryptString(Buffer.from(value,'base64'))} : undefined,openExternal:async url=>{if(!externalUrlIsAllowed(url))throw new Error('Only HTTPS authorization pages are allowed.');await shell.openExternal(url);}},
     printing: smoke||demo||!nativeWindowsIntegration() ? undefined : createConnectHost({programDirectory:path.join(process.env.LOCALAPPDATA??path.join(app.getPath('home'),'AppData','Local'),'Programs','BambuConnect'),downloadDirectory:path.join(app.getPath('userData'),'setup','bambu-connect')}),
-    slicing: smoke&&!smoke.bundled ? {} : { bundledDirectory: app.isPackaged ? path.join(process.resourcesPath, 'slicer') : path.join(app.getAppPath(), process.platform==='darwin'?`vendor/bambu-macos-${process.arch}`:'vendor/bambu') } });
+    slicing: smoke&&!smoke.bundled ? {} : { deferInitialization:true,bundledDirectory: app.isPackaged ? path.join(process.resourcesPath, 'slicer') : path.join(app.getAppPath(), process.platform==='darwin'?`vendor/bambu-macos-${process.arch}`:'vendor/bambu') } });
   server = http.createServer((request, response) => {
     if (!requestIsLocal(request.headers, origin)) {
       response.writeHead(403, { 'Content-Type': 'application/json' });

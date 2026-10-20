@@ -20,7 +20,7 @@ Connect Onshape only if you need to add or update robot CAD. Teammates using an 
 
 Use **Save progress** or **Ctrl+S**. Local autosave also keeps completed changes on this laptop. Export a portable project for a transferable backup. Downloaded parts, preparation and bundled slicing can work without an internet connection.
 
-Starting in 0.2.3, record reports and preference changes are saved to a durable local queue before Foundry says they are queued. A queued report is not yet a server-confirmed manufacturing state. The app checks records every 10 seconds while connected and retries after 5 seconds when disconnected; a detected reconnect also requests a retry. This traffic uses the team's sync service, not Onshape CAD APIs. An expired sign-in pauses delivery until you sign in again as the original account.
+Starting in 0.2.3 (retained in 0.2.4), record reports and preference changes are saved to a durable local queue before Foundry says they are queued. A queued report is not yet a server-confirmed manufacturing state. The app checks records every 10 seconds while connected and retries after 5 seconds when disconnected; a detected reconnect also requests a retry. This traffic uses the team's sync service, not Onshape CAD APIs. An expired sign-in pauses delivery until you sign in again as the original account.
 
 Keep the app open for background delivery. After reopening, the desktop resumes its saved queue. The website stores pending metadata in that browser's local storage and resumes it after signing in again; clearing site data deletes that browser's offline copies. A different account cannot send the original account's pending reports. Do not clear app/site data when reports are pending.
 
