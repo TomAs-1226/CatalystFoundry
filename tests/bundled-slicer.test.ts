@@ -2,8 +2,13 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bundledConfiguration, relocateBundledConfiguration, verifyRuntime } from '../server/bundled-slicer';
+import { bundledConfiguration as configure, relocateBundledConfiguration as relocate, verifyRuntime as verify } from '../server/bundled-slicer';
 import { hashBytes } from '../server/slicing-config';
+// Synthetic Windows inventories are data fixtures even when tests run on Mac.
+const windows={platform:'win32',arch:'x64'} as const;
+const verifyRuntime=(directory:string,hash?:string)=>verify(directory,hash,windows);
+const bundledConfiguration=(directory:string,data:string,id:string,reviewed:unknown,hash?:string)=>configure(directory,data,id,reviewed,hash,windows);
+const relocateBundledConfiguration=(...args:Parameters<typeof relocate>)=>relocate(args[0],args[1],args[2],windows);
 
 describe('bundled slicer integrity and explicit review',()=>{
   it('rejects changed DLLs, missing files, manifest changes and path escapes',async()=>{

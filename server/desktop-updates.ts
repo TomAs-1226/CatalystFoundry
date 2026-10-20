@@ -4,7 +4,7 @@ export interface UpdateStatus {available:boolean;currentVersion?:string;version?
 export interface UpdateHost {status:()=>UpdateStatus;check:()=>Promise<UpdateStatus>;download:()=>Promise<UpdateStatus>;install:()=>Promise<UpdateStatus>;}
 const empty=z.object({}).strict(),confirmation=z.object({confirmRestart:z.literal(true)}).strict();
 export function registerUpdateRoutes(app:Express,host:UpdateHost|undefined,active:()=>boolean){
- app.get('/api/desktop/updates',(_req,res)=>res.json(host?.status()??{available:false,phase:'unavailable',message:'Install the Windows desktop app to receive updates.'}));
+ app.get('/api/desktop/updates',(_req,res)=>res.json(host?.status()??{available:false,phase:'unavailable',message:'Automatic updates are unavailable in this build. Install a new native package to update.'}));
  for(const action of ['check','download','install'] as const)app.post('/api/desktop/updates/'+action,async(req,res,next)=>{
   try{
    (action==='install'?confirmation:empty).parse(req.body??{});

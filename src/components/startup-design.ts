@@ -9,8 +9,11 @@ export const startupMarkup=`
 <div class="foundry-startup__steps" aria-hidden="true"><span class="foundry-startup__step-engine"><i></i><svg viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg>Local engine</span><span class="foundry-startup__step-workspace"><i></i><svg viewBox="0 0 16 16"><path d="m3 8 3 3 7-7"/></svg>Workspace</span></div>`;
 export async function waitForStartupPresentation(element:HTMLElement,presentedAt:number){
  const finite=element.getAnimations({subtree:true}).filter(animation=>animation.effect?.getComputedTiming().iterations!==Infinity);
- await Promise.allSettled(finite.map(animation=>animation.finished));
  const minimum=window.matchMedia('(prefers-reduced-motion: reduce)').matches?startupReducedMs:startupAnimationMs;
  const remaining=minimum-(performance.now()-presentedAt);
  if(remaining>0)await new Promise(resolve=>setTimeout(resolve,Math.ceil(remaining)));
+ // Background/occluded tabs may suspend animation promises. The minimum wall
+ // time still elapses; finish the decorative track and let the workspace open.
+ await Promise.race([Promise.allSettled(finite.map(animation=>animation.finished)),new Promise(resolve=>setTimeout(resolve,250))]);
+ finite.filter(animation=>animation.playState!=='finished').forEach(animation=>{try{animation.finish();}catch{}});
 }

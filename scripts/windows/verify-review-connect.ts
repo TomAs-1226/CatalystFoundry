@@ -12,12 +12,12 @@ import {bundledCatalog,bundledConfiguration} from '../../server/bundled-slicer';
 import {createConfiguredSlicing,prepareSlicing,slicingProfile} from '../../server/slicing-http';
 import {GEOMETRY_PREPARATION_VERSION} from '../../src/domain/preparation-version';
 import {SliceSession,type SliceSessionState} from '../../src/components/slice-session';
-const runtime=resolve('vendor/bambu'),out=resolve(process.argv[2]??'../../evidence/review-connect-native');await mkdir(out,{recursive:true});const reports=[];
+const runtime=resolve(process.env.FOUNDRY_QA_RUNTIME??'vendor/bambu'),out=resolve(process.argv[2]??'../../evidence/review-connect-native');await mkdir(out,{recursive:true});const reports=[];
 for(const model of ['Bambu Lab X1','Bambu Lab X2D'])for(const kind of ['holes','normal','tree'] as const){
  const profile=(await bundledCatalog(runtime)).find(p=>p.printer.model===model&&p.material.type==='PLA')!;if(!profile)throw Error('Missing reviewed mapping');
  const directory=join(out,profile.id+'-'+kind);await mkdir(directory,{recursive:true});const config=await bundledConfiguration(runtime,directory,profile.id,true);
  // Keep native filenames below Win32 MAX_PATH; evidence remains separate.
- config.workRoot=resolve('../../native-qa/rv-'+(model.endsWith('X2D')?'x2d':'x1')+'-'+kind);
+ config.workRoot=resolve(process.env.FOUNDRY_QA_WORK??'../../native-qa','rv-'+(model.endsWith('X2D')?'x2d':'x1')+'-'+kind);
  const context=await createConfiguredSlicing(directory,{config,bundledDirectory:runtime});
  try{
   const fixture=kind==='holes'?'two-hole-plate':'support-test',color=kind==='holes'?'#287AB5':'#A16B43';
@@ -60,4 +60,4 @@ for(const model of ['Bambu Lab X1','Bambu Lab X2D'])for(const kind of ['holes','
   }finally{owner.dispose();}
  }finally{await context.service.shutdown();}
 }
-await writeFile(join(out,'summary.json'),JSON.stringify({passed:true,scope:'Six fresh native Windows offline public-fixture slices: X1/X2D holes and normal/tree required-plus-backup, advanced settings, root-owned polling/attachment with no workspace panel, exact fixture review/approval, save/reopen and invalidation. This is a headless controller test, not actual UI navigation. No operator qualification, Onshape or printer contact.',reports},null,2)+'\n');
+await writeFile(join(out,'summary.json'),JSON.stringify({passed:true,platform:process.platform,architecture:process.arch,scope:'Six fresh native offline public-fixture slices: X1/X2D holes and normal/tree required-plus-backup, advanced settings, root-owned polling/attachment with no workspace panel, exact fixture review/approval, save/reopen and invalidation. This is a headless controller test, not actual UI navigation. No operator qualification, Onshape or printer contact.',reports},null,2)+'\n');

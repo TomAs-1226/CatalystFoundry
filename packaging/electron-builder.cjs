@@ -8,7 +8,7 @@ module.exports = {
   npmRebuild: false,
   files: [
     'dist/**', 'desktop-dist/server.cjs', 'electron/main.cjs', 'electron/runtime.cjs', 'electron/bambu-connect.cjs', 'electron/bambu-setup.cjs', 'electron/startup.html', 'electron/updates.cjs', 'electron/update-policy.cjs', 'electron/update-process.cjs',
-    'package.json', '!node_modules/**', '!**/.env*', '!**/*.map', '!**/project.json',
+    'electron/startup-policy.cjs', 'package.json', '!node_modules/**', '!**/.env*', '!**/*.map', '!**/project.json',
   ],
   extraMetadata: { main: 'electron/main.cjs', productName: 'Catalyst Foundry' },
   extraResources: [

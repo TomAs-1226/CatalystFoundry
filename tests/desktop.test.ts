@@ -56,6 +56,8 @@ describe('desktop launch and packaging boundary', () => {
     expect(() => smokeOptions([`--foundry-smoke-report=${report}`])).toThrow(/isolated/);
     expect(() => smokeOptions(['--foundry-smoke-report=relative.json', `--foundry-smoke-data=${data}`])).toThrow(/absolute/);
     expect(() => smokeOptions([`--foundry-smoke-report=${report}`, `--foundry-smoke-data=${data}`, '--foundry-smoke-phase=print'])).toThrow(/Unknown/);
+    expect(()=>smokeOptions(['--foundry-smoke-bundled'])).toThrow(/isolated/);
+    expect(smokeOptions([`--foundry-smoke-report=${report}`,`--foundry-smoke-data=${data}`,'--foundry-smoke-bundled'])).toEqual({report,data,phase:'save',bundled:true});
   });
 
   it('packages offline assets and bundled server without project data, secrets or automatic publishing', async () => {

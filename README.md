@@ -42,6 +42,8 @@ The complete browser suite is **npm run test:e2e**. On Windows, install a suppor
 
 ## Repository and releases
 
+Native Mac packaging is prepared locally for separate Apple Silicon/Intel DMG and ZIP targets. It remains **unreleased and untested on Mac**; see [Mac prerequisites and native verification](docs/MACOS.md). The current Windows updater/Connect installer is not enabled for Mac.
+
 This public repository contains application source and synthetic fixtures. User CAD, credentials, pairing codes, local result.json, runtime data, private evidence, protected signing keys and generated vendor binaries are excluded. Previous cloud UI recordings and generated demonstrations remain outside the tracked release source.
 
 GitHub Actions runs native Windows build/unit/install checks. Publishing a signed internal prerelease requires an explicit workflow dispatch with Publish enabled and the repository's protected signing secret. It does not publish on ordinary pushes or PRs. The installed Windows EXE is currently unsigned with Authenticode; the separate Ed25519 update signature verifies OTA artifacts and does not represent a Windows publisher certificate.

@@ -35,12 +35,13 @@ function smokeOptions(args) {
   const report = args.find(arg => arg.startsWith('--foundry-smoke-report='))?.slice('--foundry-smoke-report='.length);
   const data = args.find(arg => arg.startsWith('--foundry-smoke-data='))?.slice('--foundry-smoke-data='.length);
   const phase = args.find(arg => arg.startsWith('--foundry-smoke-phase='))?.slice('--foundry-smoke-phase='.length) || 'save';
-  if (!report && !data) return undefined;
+  const bundled=args.includes('--foundry-smoke-bundled');
+  if (!report && !data&&!bundled) return undefined;
   if (!report || !data || !path.isAbsolute(report) || !path.isAbsolute(data)) {
     throw new Error('Smoke verification requires absolute report and isolated data paths.');
   }
   if (!['save', 'reopen'].includes(phase)) throw new Error('Unknown desktop smoke phase.');
-  return { report, data, phase };
+  return { report, data, phase,...(bundled?{bundled:true}:{}) };
 }
 
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'; font-src 'self' data:; form-action 'self'";
@@ -54,4 +55,6 @@ const browserOptions = Object.freeze({
   spellcheck: false,
 });
 
-module.exports = { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions };
+// The current updater executes a Windows NSIS installer; never expose it on Mac.
+function nativeWindowsIntegration(platform=process.platform,arch=process.arch){return platform==='win32'&&arch==='x64';}
+module.exports = { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions, nativeWindowsIntegration };

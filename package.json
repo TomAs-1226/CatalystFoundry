@@ -1,6 +1,6 @@
 {
   "name": "catalyst-foundry",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,8 @@
     "start": "node --use-env-proxy --import tsx server/production.ts",
     "desktop:prepare": "node scripts/windows/build-desktop.mjs",
     "desktop:dev": "npm run desktop:prepare && electron .",
-    "dist:win": "npm run desktop:prepare && electron-builder --config packaging/electron-builder.cjs --win nsis --x64"
+    "dist:win": "npm run desktop:prepare && electron-builder --config packaging/electron-builder.cjs --win nsis --x64",
+    "dist:mac": "node scripts/macos/build-installer.mjs"
   },
   "dependencies": {
     "express": "5.1.0",

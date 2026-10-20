@@ -20,12 +20,14 @@ interface PreparationRecord extends PreparedSlice { request:SliceRequest; }
 export interface SlicingContext {service:SlicingService;config?:SlicingFileConfig;configurationError?:string;workRoot:string;runner?:CommandRunner;bundledDirectory?:string;dataDirectory?:string;reconfiguring?:boolean;}
 /** Trusted host configuration, never a browser-supplied executable/path. No printer connection exists. */
 export async function createConfiguredSlicing(dataDirectory:string, options:{configPath?:string;config?:SlicingFileConfig;runner?:CommandRunner;bundledDirectory?:string}={}):Promise<SlicingContext> {
- let config=options.config, configurationError:string|undefined;
+ let config=options.config, configurationError:string|undefined,runtimeVerifiedHere=false;
  try {
   const configPath=options.configPath??process.env.CATALYST_SLICER_CONFIG;
   if(!config&&configPath){if(!isAbsolute(configPath))throw new Error('CATALYST_SLICER_CONFIG must be an absolute JSON file path.');config=JSON.parse(await readFile(configPath,'utf8')) as SlicingFileConfig;}
-  if(!config&&!configPath&&options.bundledDirectory){let saved:SlicingFileConfig|undefined;try{saved=JSON.parse(await readFile(join(dataDirectory,'bundled-slicer.json'),'utf8'));}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}if(saved)config=await relocateBundledConfiguration(saved,options.bundledDirectory,dataDirectory);}
-  if(config?.runtime)await verifyRuntime(config.runtime.directory,config.runtime.sha256);
+  if(!config&&!configPath&&options.bundledDirectory){let saved:SlicingFileConfig|undefined;try{saved=JSON.parse(await readFile(join(dataDirectory,'bundled-slicer.json'),'utf8'));}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}if(saved){config=await relocateBundledConfiguration(saved,options.bundledDirectory,dataDirectory);runtimeVerifiedHere=true;}}
+  // Relocation has just verified every runtime file in this call. No persistent
+  // validation cache: external configuration and every slice still verify anew.
+  if(config?.runtime&&!runtimeVerifiedHere)await verifyRuntime(config.runtime.directory,config.runtime.sha256);
   if(config){config.bedType=config.printer?.plate;if(!isAbsolute(config.workRoot))throw new Error('Slicer workRoot must be an absolute dedicated directory.');config={...config,workRoot:await canonicalWorkDirectory(config.workRoot)};validateConfiguredProfiles(config,await readPinnedProfile(config.machine,'machine'),await readPinnedProfile(config.filament,'filament'));}
  }catch(error){configurationError=(error as Error).message;config=undefined;}
  const selected=config;
@@ -87,7 +89,7 @@ export function registerSlicingRoutes(app:Express,context:SlicingContext) {
   if(context.reconfiguring){res.status(409).json({error:'Profile selection is already in progress.'});return;}
   context.reconfiguring=true;
   try {
-   if(!context.bundledDirectory||!context.dataDirectory)throw new Error('This build does not contain a bundled Windows slicer.');
+   if(!context.bundledDirectory||!context.dataDirectory)throw new Error('This build does not contain a bundled native slicer.');
    if(context.service.listJobs().some(job=>['queued','running'].includes(job.status)))throw new Error('Finish or cancel active slicing before changing profiles.');
    const config=await bundledConfiguration(context.bundledDirectory,context.dataDirectory,req.body?.id,req.body?.reviewed);
    const capability=await new BambuStudioCliAdapter(config,context.runner).capability();

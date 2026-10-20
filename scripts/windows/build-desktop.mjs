@@ -32,6 +32,7 @@ await writeFile(path.join(root, 'desktop-dist/build.json'), JSON.stringify({
   electron: pkg.devDependencies.electron,
   generatedAt: new Date().toISOString(),
   windowsInstallationValidated: false,
-  note: 'Preparation is not Windows installation verification. Run Verify-Installer.ps1 on Windows.',
+  macInstallationValidated: false,
+  note: 'Preparation is not native installation verification. Run the matching platform installer verifier.',
 }, null, 2));
-console.log('Desktop assets prepared. Native Windows installation remains a separate verification step.');
+console.log('Desktop assets prepared. Native installation remains a separate platform verification step.');

@@ -1,6 +1,7 @@
 const {createConnectHost}=require('./bambu-setup.cjs');
 const {createUpdateHost}=require('./updates.cjs');
 const {spawnUpdateHelper}=require('./update-process.cjs');
+const {waitForPresentation}=require('./startup-policy.cjs');
 const { app, BrowserWindow, Menu, dialog, shell, safeStorage } = require('electron');
 const http = require('node:http');
 // Node 24.19+ honours the session's existing proxy/CA settings for server fetch.
@@ -10,7 +11,7 @@ const path = require('node:path');
 const { mkdir, writeFile, appendFile, readFile } = require('node:fs/promises');
 const {randomUUID}=require('node:crypto');
 const { once } = require('node:events');
-const { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions } = require('./runtime.cjs');
+const { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions, nativeWindowsIntegration } = require('./runtime.cjs');
 
 app.setName('Catalyst Foundry');
 app.setPath('userData', path.join(app.getPath('appData'), 'Catalyst Foundry'));
@@ -28,6 +29,12 @@ let closing = false;
 let shutdownComplete = false;
 const pageErrors = [];
 let startupTiming;
+const startupClock=performance.now(),startupCpu=process.cpuUsage(),startupPhases=[];
+function startupPhase(phase){
+  const cpu=process.cpuUsage(startupCpu),memory=process.memoryUsage();
+  const value={phase,elapsedMs:Math.round(performance.now()-startupClock),mainCpuMs:Math.round((cpu.user+cpu.system)/1000),mainRssMiB:Math.round(memory.rss/2**20)};
+  startupPhases.push(value);void log('Startup '+JSON.stringify(value)).catch(()=>{});
+}
 let updates;
 let updateTimer;
 
@@ -56,7 +63,7 @@ async function fatal(error) {
   await log(`Startup/runtime failure: ${message}`).catch(() => {});
   if (smoke) {
     await mkdir(path.dirname(smoke.report), { recursive: true });
-    await writeFile(smoke.report, JSON.stringify({ passed: false, platform: process.platform, phase: smoke.phase, startup:startupTiming,errors: [message, ...pageErrors] }, null, 2));
+    await writeFile(smoke.report, JSON.stringify({ passed: false, platform: process.platform, phase: smoke.phase, startup:startupTiming??{phases:startupPhases},errors: [message, ...pageErrors] }, null, 2));
   } else dialog.showErrorBox('Catalyst Foundry could not start', `${message}\n\nYour saved project has not been deleted. Desktop logs: ${paths?.logDirectory || app.getPath('userData')}`);
   await stopService().catch(() => {});
   app.exit(1);
@@ -106,11 +113,12 @@ async function runSmoke(serverModule) {
 
 async function start() {
   paths = desktopPaths(app.getAppPath(), app.getPath('userData'));
+  await startupPhase('app-ready');
   Menu.setApplicationMenu(null);
   mainWindow = new BrowserWindow({
     width: 1440, height: 960, minWidth: 900, minHeight: 640,
     title: 'Catalyst Foundry', backgroundColor: '#101214', show: false,
-    webPreferences: browserOptions,
+    webPreferences: {...browserOptions,backgroundThrottling:false},
   });
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.webContents.session.setPermissionCheckHandler(() => false);
@@ -132,12 +140,15 @@ async function start() {
     if (smoke && details.level === 'error') pageErrors.push(`Renderer console: ${details.message}`);
   });
   const startupVisible = new Promise(resolve => mainWindow.once('show', () => resolve(performance.now())));
-  mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('closed', () => { mainWindow = undefined; });
+  // Show the charcoal native window immediately. Paint/occlusion must not gate
+  // the service or force someone to focus a window before it can finish booting.
+  mainWindow.show();
   await mainWindow.loadFile(path.join(__dirname, 'startup.html'));
   // Start the sequence only after the native document is actually visible.
   // Engine initialization runs during this interval; slow starts add no delay.
   await startupVisible;
+  await startupPhase('splash-visible');
   // A Windows launcher may apply SW_HIDE to the first show request. Ensure the
   // loaded startup document is visible before starting its animation interval.
   if (!mainWindow.isVisible()) mainWindow.show();
@@ -153,7 +164,8 @@ async function start() {
   const startupMinimumMs=startupMotion.minimumMs;
   const startupPresentedAt = performance.now();
   const serverModule = require(paths.serverEntry);
-  if(!smoke&&app.isPackaged)updates=createUpdateHost({directory:path.join(app.getPath('userData'),'updates'),currentVersion:app.getVersion(),install:async(installer,sha256)=>{
+  await startupPhase('service-module-loaded');
+  if(!smoke&&app.isPackaged&&nativeWindowsIntegration())updates=createUpdateHost({directory:path.join(app.getPath('userData'),'updates'),currentVersion:app.getVersion(),install:async(installer,sha256)=>{
     const readyFile=path.join(app.getPath('userData'),'updates','install-ready.json');
     const helperPath=path.join(app.getPath('userData'),'updates',`helper-${randomUUID()}.exe`);
     // Stage the trusted helper outside the installation being replaced.
@@ -170,8 +182,8 @@ async function start() {
   service = await serverModule.createApp({ dataDirectory: paths.dataDirectory, staticDirectory: paths.staticDirectory,
     updates,
     sync: smoke ? {} : { defaultUrl: 'https://catalyst-foundry-sync.catalyst-foundry-sync.workers.dev', vault: safeStorage.isEncryptionAvailable() ? {encrypt:value=>safeStorage.encryptString(value).toString('base64'),decrypt:value=>safeStorage.decryptString(Buffer.from(value,'base64'))} : undefined,openExternal:async url=>{if(!externalUrlIsAllowed(url))throw new Error('Only HTTPS authorization pages are allowed.');await shell.openExternal(url);}},
-    printing: smoke ? undefined : createConnectHost({programDirectory:path.join(process.env.LOCALAPPDATA??path.join(app.getPath('home'),'AppData','Local'),'Programs','BambuConnect'),downloadDirectory:path.join(app.getPath('userData'),'setup','bambu-connect')}),
-    slicing: smoke ? {} : { bundledDirectory: app.isPackaged ? path.join(process.resourcesPath, 'slicer') : path.join(app.getAppPath(), 'vendor/bambu') } });
+    printing: smoke||!nativeWindowsIntegration() ? undefined : createConnectHost({programDirectory:path.join(process.env.LOCALAPPDATA??path.join(app.getPath('home'),'AppData','Local'),'Programs','BambuConnect'),downloadDirectory:path.join(app.getPath('userData'),'setup','bambu-connect')}),
+    slicing: smoke&&!smoke.bundled ? {} : { bundledDirectory: app.isPackaged ? path.join(process.resourcesPath, 'slicer') : path.join(app.getAppPath(), process.platform==='darwin'?`vendor/bambu-macos-${process.arch}`:'vendor/bambu') } });
   server = http.createServer((request, response) => {
     if (!requestIsLocal(request.headers, origin)) {
       response.writeHead(403, { 'Content-Type': 'application/json' });
@@ -186,6 +198,7 @@ async function start() {
   server.on('error', error => void fatal(error));
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
+  await startupPhase('local-service-listening');
   origin = `http://127.0.0.1:${server.address().port}`;
   if (closing || !mainWindow || mainWindow.isDestroyed()) return;
   await mainWindow.webContents.executeJavaScript("document.querySelector('.foundry-startup').dataset.stage='workspace'");
@@ -193,17 +206,17 @@ async function start() {
     await new Promise(resolve => setTimeout(resolve, Math.ceil(startupMinimumMs - (performance.now() - startupPresentedAt))));
   }
   if (closing || !mainWindow || mainWindow.isDestroyed()) return;
-  // Completion promises cover a delayed first frame. The loading spinner is
-  // intentionally unbounded and must not delay the workspace handoff.
-  const completion=await mainWindow.webContents.executeJavaScript(`(async () => {
-    const root=document.querySelector('.foundry-startup');
-    const finite=root.getAnimations({subtree:true}).filter(a=>a.effect?.getComputedTiming().iterations!==Infinity);
-    await Promise.allSettled(finite.map(a=>a.finished));
-    return {animationCompleted:finite.every(a=>a.playState==='finished')||matchMedia('(prefers-reduced-motion: reduce)').matches,completedAnimations:finite.filter(a=>a.playState==='finished').length};
-  })()`);
-  startupTiming = {...startupMotion,...completion,elapsedBeforeNavigationMs:performance.now()-startupPresentedAt,windowVisible:mainWindow.isVisible()};
+  const completion=await waitForPresentation({presentedAt:startupPresentedAt,minimumMs:startupMinimumMs,
+    complete:()=>closing||!mainWindow||mainWindow.isDestroyed()||mainWindow.webContents.executeJavaScript("document.querySelector('.foundry-startup').getAnimations({subtree:true}).filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).every(a=>a.playState==='finished')||matchMedia('(prefers-reduced-motion: reduce)').matches"),
+    finish:()=>mainWindow&&!mainWindow.isDestroyed()&&mainWindow.webContents.executeJavaScript("document.querySelector('.foundry-startup').getAnimations({subtree:true}).filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).forEach(a=>{try{a.finish()}catch{}})")});
+  if(closing||!mainWindow||mainWindow.isDestroyed())return;
+  await startupPhase('splash-animation-complete');
+  startupTiming = {...startupMotion,...completion,phases:startupPhases,elapsedBeforeNavigationMs:performance.now()-startupPresentedAt,windowVisible:mainWindow.isVisible()};
   if (smoke && (startupTiming.elapsedBeforeNavigationMs < startupMinimumMs || !startupTiming.windowVisible || !startupTiming.animationCompleted || (!startupMotion.reducedMotion&&!startupMotion.finiteAnimations))) throw new Error('Startup presentation ended before the visible animation completed.');
   await mainWindow.loadURL(`${origin}/?desktop-startup=complete`);
+  // Restore normal background efficiency after the short splash sequence.
+  mainWindow.webContents.setBackgroundThrottling(true);
+  await startupPhase('workspace-loaded');
   await log(`Started ${app.getVersion()} ${process.platform}/${process.arch}, local port ${server.address().port}.`);
   if(updates){const checkUpdates=()=>{if(closing)return;void updates.start().catch(error=>log('Update check: '+error.message)).finally(()=>{if(!closing){updateTimer=setTimeout(checkUpdates,6*60*60_000);updateTimer.unref();}});};updateTimer=setTimeout(checkUpdates,30_000);updateTimer.unref();}
   if (smoke) await runSmoke(serverModule);
