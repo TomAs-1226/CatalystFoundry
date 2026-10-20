@@ -27,7 +27,7 @@ try{
  const executable=run('/usr/bin/plutil',['-extract','CFBundleExecutable','raw','-o','-',plist]).trim();
  const version=run('/usr/bin/plutil',['-extract','CFBundleVersion','raw','-o','-',plist]).trim();
  const normalizedVersion=version.match(/\d+\.\d+\.\d+\.\d+/)?.[0].split('.').map(Number).join('.');
- if(executable!=='BambuStudio'||normalizedVersion!==bambuMac.version)throw Error('Pinned vendor executable/version does not match.');
+ if(executable!=='BambuStudio'||normalizedVersion!==bambuMac.version)throw Error('Pinned vendor executable/version does not match: '+JSON.stringify({executable,version,shortVersion:run('/usr/bin/plutil',['-extract','CFBundleShortVersionString','raw','-o','-',plist]).trim()}));
  const cpuArch=arch==='x64'?'x86_64':'arm64';
  const executableArchitectures=run('/usr/bin/lipo',['-archs',join(vendor,'Contents/MacOS/BambuStudio')]).trim().split(/\s+/).map((v:string)=>v==='x86_64'?'x64':v);
  if(!executableArchitectures.includes(arch))throw Error('The official runtime lacks this architecture.');
