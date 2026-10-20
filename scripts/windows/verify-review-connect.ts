@@ -33,7 +33,7 @@ for(const model of ['Bambu Lab X1','Bambu Lab X2D'])for(const kind of ['holes','
   // There is deliberately no mounted workspace/SlicingPanel. The root owner must finish.
   try{
   while(['queued','running'].includes(done.status)&&Date.now()<deadline){await new Promise(resolve=>setTimeout(resolve,300));done=context.service.getJob(done.id)!;}
-  if(done.status!=='succeeded'||!done.result)throw Error(done.error??'Native slice did not complete');
+  if(done.status!=='succeeded'||!done.result)throw Error((done.error??'Native slice did not complete')+'\n'+done.logs.slice(-20).join('\n'));
   if(done.result.preparationVersion!==GEOMETRY_PREPARATION_VERSION)throw Error('Old geometry preparation result');
   const archive=unzipSync(Buffer.from(done.result.slicerProject!.data,'base64')),metadata=JSON.parse(strFromU8(archive['Metadata/plate_1.json']));
   if(metadata.filament_colors?.[0]?.toUpperCase()!==color)throw Error('Native file did not preserve the selected filament color');
