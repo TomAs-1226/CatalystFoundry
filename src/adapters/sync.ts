@@ -1,4 +1,4 @@
-export interface SyncStatus {configured:boolean;signedIn:boolean;url:string;reason:string;user?:{id:string;login:string};onshapeConnected?:boolean;team?:string;membershipPolicy?:'open'|'restricted';}
+export interface SyncStatus {configured:boolean;signedIn:boolean;cachedSession?:boolean;offline?:boolean;url:string;reason:string;user?:{id:string;login:string};onshapeConnected?:boolean;team?:string;membershipPolicy?:'open'|'restricted';}
 export type {TeamSource} from '../../sync/sources';
 export interface Preferences {revision:number;data:{defaultConnectionMode:'lan'|'connect';defaultWorkOrder:string;preferredProfileId:string;showAdvanced:boolean};}
 export interface SharedRecord {id:string;actor_id:string;actor_login:string;work_order:string;job_name:string;status:string;revision:number;updated_at:string;manifest_hash:string;artifact_hash:string;required_count:number;backup_count:number;units?:{unitKey:string;partName:string;subsystem:string;purpose:'required'|'backup';slot:string}[];events?:{actor_id:string;action:string;note:string;created_at:string}[];}

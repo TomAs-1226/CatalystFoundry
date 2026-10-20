@@ -1,7 +1,7 @@
 import type { RemoteSync } from "./sync";
 import {GEOMETRY_PREPARATION_VERSION} from '../src/domain/preparation-version';
 import type { Express } from 'express';
-import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename,readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { strFromU8, unzipSync } from 'fflate';
@@ -21,12 +21,16 @@ export interface ConnectHost {
 export interface PrintHandoff {
  id:string;jobId:string;sliceId:string;manifestHash:string;artifactHash:string;toolpathHash:string;
  model:string;mode:'lan'|'connect';createdAt:string;status:'opening'|'opened-for-review'|'failed';
- printerStatus:'unknown';error?:string;reservationId?:string;syncStatus?:'recorded'|'pending';
+ printerStatus:'unknown';error?:string;reservationId?:string;reservationRevision?:number;syncStatus?:'recorded'|'pending';
 }
 const input=z.object({jobId:z.string().min(1).max(200),sliceId:z.string().min(1).max(200),manifestHash:z.string().regex(/^[a-f0-9]{64}$/),mode:z.enum(['lan','connect']),reviewInConnect:z.literal(true)}).strict();
 export class PrintingService {
  private queue:Promise<unknown>=Promise.resolve();
  constructor(private directory:string,private slicing:SlicingContext,private host?:ConnectHost,private sync?:RemoteSync){}
+ async recoverReports(){
+  if(!this.sync?.configured())return;const root=join(this.directory,'print-handoffs');let names:string[];try{names=await readdir(root);}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return;throw e;}
+  for(const name of names.filter(n=>/^[a-f0-9]{64}$/.test(n))){try{const receipt=JSON.parse(await readFile(join(root,name,'receipt.json'),'utf8')) as PrintHandoff;if(receipt.id!==name||receipt.status!=='opened-for-review'||receipt.syncStatus!=='pending'||!receipt.reservationId||!receipt.reservationRevision)continue;await this.sync.handedOff(receipt.reservationId,receipt.reservationRevision,receipt.id);}catch{/* Keep the receipt for a later retry; never reopen Connect here. */}}
+ }
  capability(){return this.host?.capability()??Promise.resolve({available:false,reason:'Bambu Connect handoff is available in the Windows desktop app after installing Bambu Connect.'});}
  async setup(){return{...await this.capability(),canInstall:!!this.host?.install,canOpen:!!this.host?.launch,installation:this.host?.status?.(),loginStatus:'unknown' as const};}
  async install(){if(!this.host?.install)throw Error('Official Connect setup requires the Windows desktop app.');await this.host.install();return this.setup();}
@@ -65,12 +69,13 @@ export class PrintingService {
   await writeFile(join(directory,'manifest.json'),JSON.stringify({manifest:manufacturingManifest(project,job),artifactHash:artifact.hash,toolpathHash:result.toolpathHash,nativeReviewRequired:true,physicalChecksRequired:true},null,2),{mode:0o600});
   const reservation=this.sync?.configured()?await this.sync.reserve(project,job,artifact.hash):undefined;
   if(reservation&&!['reserved','handed-off'].includes(reservation.status))throw new Error('These copies were already reported as making or produced. Review the shared record.');
-  const receipt:PrintHandoff={id,jobId:job.id,sliceId:slice.id,manifestHash,artifactHash:artifact.hash,toolpathHash:result.toolpathHash,model:job.printer.model,mode:value.mode,createdAt:new Date().toISOString(),status:'opening',printerStatus:'unknown',...(reservation?{reservationId:reservation.id,syncStatus:'pending' as const}:{})};
+  const receipt:PrintHandoff={id,jobId:job.id,sliceId:slice.id,manifestHash,artifactHash:artifact.hash,toolpathHash:result.toolpathHash,model:job.printer.model,mode:value.mode,createdAt:new Date().toISOString(),status:'opening',printerStatus:'unknown',...(reservation?{reservationId:reservation.id,reservationRevision:reservation.revision,syncStatus:'pending' as const}:{})};
   const save=async()=>{const temp=join(directory,`${randomUUID()}.tmp`);await writeFile(temp,JSON.stringify(receipt,null,2),{mode:0o600});await rename(temp,receiptPath);};
   await save();
   try{await this.host.open(file,`${job.name.slice(0,190)} · ${job.printer.model}`);receipt.status='opened-for-review';}
   catch(e){receipt.status='failed';receipt.error=(e as Error).message;}
-  if(receipt.status==='opened-for-review'&&reservation){try{await this.sync!.handedOff(reservation.id,reservation.revision,id);receipt.syncStatus='recorded';}catch{receipt.syncStatus='pending';}}
+  await save(); // An observed successful open survives a crash before outbox persistence.
+  if(receipt.status==='opened-for-review'&&reservation){try{await this.sync!.handedOff(reservation.id,reservation.revision,id);receipt.syncStatus='pending';}catch{receipt.syncStatus='pending';}}
   await save();return receipt;
  }
 }

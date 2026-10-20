@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 $env:ONSHAPE_ACCESS_TOKEN_FILE = $null
 $env:CATALYST_SLICER_CONFIG = $null
 if ($env:OS -ne 'Windows_NT') { throw 'Installation verification requires native Windows.' }
+if (Get-Process -Name 'Catalyst Foundry' -ErrorAction SilentlyContinue) { throw 'Close Foundry after saving before native installer verification. An isolated destination does not isolate the upstream NSIS process-name check.' }
 $InstallerPath = (Resolve-Path $Installer).Path
 if ([IO.Path]::GetExtension($InstallerPath) -ne '.exe') { throw 'Provide the generated NSIS installer EXE.' }
 $EvidenceDirectory = [IO.Path]::GetFullPath($EvidenceDirectory)

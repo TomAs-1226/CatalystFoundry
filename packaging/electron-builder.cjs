@@ -21,6 +21,7 @@ module.exports = {
   forceCodeSigning: false,
   win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'packaging/assets/foundry.ico' },
   nsis: {
+    include: 'packaging/no-force-close.nsh',
     oneClick: false, perMachine: false, allowElevation: false,
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true, createStartMenuShortcut: true,

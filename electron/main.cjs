@@ -11,14 +11,15 @@ const path = require('node:path');
 const { mkdir, writeFile, appendFile, readFile } = require('node:fs/promises');
 const {randomUUID}=require('node:crypto');
 const { once } = require('node:events');
-const { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions, nativeWindowsIntegration } = require('./runtime.cjs');
+const { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions,demoOptions, contentSecurityPolicy, browserOptions, nativeWindowsIntegration } = require('./runtime.cjs');
 
 app.setName('Catalyst Foundry');
 app.setPath('userData', path.join(app.getPath('appData'), 'Catalyst Foundry'));
-let smoke;
-try { smoke = smokeOptions(process.argv); }
+let smoke,demo;
+try { smoke = smokeOptions(process.argv);demo=demoOptions(process.argv); }
 catch (error) { dialog.showErrorBox('Catalyst Foundry verification', error.message); app.exit(1); }
 if (smoke) app.setPath('userData', path.join(smoke.data, 'desktop-profile'));
+if(demo)app.setPath('userData',demo.data);
 
 let mainWindow;
 let server;
@@ -117,13 +118,13 @@ async function start() {
   Menu.setApplicationMenu(null);
   mainWindow = new BrowserWindow({
     width: 1440, height: 960, minWidth: 900, minHeight: 640,
-    title: 'Catalyst Foundry', backgroundColor: '#101214', show: false,
+    title: demo?'Catalyst Foundry - Isolated demo':'Catalyst Foundry', backgroundColor: '#101214', show: false,
     webPreferences: {...browserOptions,backgroundThrottling:false},
   });
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.webContents.session.setPermissionCheckHandler(() => false);
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (externalUrlIsAllowed(url)) void shell.openExternal(url);
+    if (!demo&&externalUrlIsAllowed(url)) void shell.openExternal(url);
     return { action: 'deny' };
   });
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -148,6 +149,7 @@ async function start() {
   // Start the sequence only after the native document is actually visible.
   // Engine initialization runs during this interval; slow starts add no delay.
   await startupVisible;
+  if(demo){mainWindow.on('page-title-updated',event=>event.preventDefault());mainWindow.setTitle('Catalyst Foundry - Isolated demo');}
   await startupPhase('splash-visible');
   // A Windows launcher may apply SW_HIDE to the first show request. Ensure the
   // loaded startup document is visible before starting its animation interval.
@@ -165,7 +167,7 @@ async function start() {
   const startupPresentedAt = performance.now();
   const serverModule = require(paths.serverEntry);
   await startupPhase('service-module-loaded');
-  if(!smoke&&app.isPackaged&&nativeWindowsIntegration())updates=createUpdateHost({directory:path.join(app.getPath('userData'),'updates'),currentVersion:app.getVersion(),install:async(installer,sha256)=>{
+  if(!smoke&&!demo&&app.isPackaged&&nativeWindowsIntegration())updates=createUpdateHost({directory:path.join(app.getPath('userData'),'updates'),currentVersion:app.getVersion(),install:async(installer,sha256)=>{
     const readyFile=path.join(app.getPath('userData'),'updates','install-ready.json');
     const helperPath=path.join(app.getPath('userData'),'updates',`helper-${randomUUID()}.exe`);
     // Stage the trusted helper outside the installation being replaced.
@@ -181,8 +183,8 @@ async function start() {
   }});
   service = await serverModule.createApp({ dataDirectory: paths.dataDirectory, staticDirectory: paths.staticDirectory,
     updates,
-    sync: smoke ? {} : { defaultUrl: 'https://catalyst-foundry-sync.catalyst-foundry-sync.workers.dev', vault: safeStorage.isEncryptionAvailable() ? {encrypt:value=>safeStorage.encryptString(value).toString('base64'),decrypt:value=>safeStorage.decryptString(Buffer.from(value,'base64'))} : undefined,openExternal:async url=>{if(!externalUrlIsAllowed(url))throw new Error('Only HTTPS authorization pages are allowed.');await shell.openExternal(url);}},
-    printing: smoke||!nativeWindowsIntegration() ? undefined : createConnectHost({programDirectory:path.join(process.env.LOCALAPPDATA??path.join(app.getPath('home'),'AppData','Local'),'Programs','BambuConnect'),downloadDirectory:path.join(app.getPath('userData'),'setup','bambu-connect')}),
+    sync: smoke||demo ? {} : { defaultUrl: 'https://catalyst-foundry-sync.catalyst-foundry-sync.workers.dev', vault: safeStorage.isEncryptionAvailable() ? {encrypt:value=>safeStorage.encryptString(value).toString('base64'),decrypt:value=>safeStorage.decryptString(Buffer.from(value,'base64'))} : undefined,openExternal:async url=>{if(!externalUrlIsAllowed(url))throw new Error('Only HTTPS authorization pages are allowed.');await shell.openExternal(url);}},
+    printing: smoke||demo||!nativeWindowsIntegration() ? undefined : createConnectHost({programDirectory:path.join(process.env.LOCALAPPDATA??path.join(app.getPath('home'),'AppData','Local'),'Programs','BambuConnect'),downloadDirectory:path.join(app.getPath('userData'),'setup','bambu-connect')}),
     slicing: smoke&&!smoke.bundled ? {} : { bundledDirectory: app.isPackaged ? path.join(process.resourcesPath, 'slicer') : path.join(app.getAppPath(), process.platform==='darwin'?`vendor/bambu-macos-${process.arch}`:'vendor/bambu') } });
   server = http.createServer((request, response) => {
     if (!requestIsLocal(request.headers, origin)) {

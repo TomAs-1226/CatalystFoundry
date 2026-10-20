@@ -1,0 +1,13 @@
+# Record synchronization
+
+The desktop and website share `src/adapters/record-sync.ts`. Metadata is account-scoped by service origin, team and verified user ID. Session-token rotation does not change that scope. Windows stores the queue beside the per-user data in `data/record-sync/`; the website stores metadata in localStorage and uses Web Locks for cross-tab updates. Credentials are not stored in the outbox. Website sign-in tokens remain in memory, so a page reload requires sign-in before delivery resumes.
+
+Writes persist before returning a `queued` response. Confirmed server state stays separate from pending reports. Only preferences and explicit attested record events can enter this queue. Reservations, printer actions, native opening, Onshape reads and CAD geometry cannot. Online reservation checks and transactional unit ownership continue to prevent overlapping required/backup claims.
+
+The background engine runs independently of the desktop sync screen. Healthy polling is every 10 seconds; connection failures retry after 5 seconds with a 5-second request deadline. Start, enqueue and renderer `online` events also request work. Requests in one engine do not overlap. Only record metadata and preferences are polled; opening records refreshes cached details when their server revision changes. The app must be running for delivery.
+
+Record events retain their original idempotency key and expected revision across disconnects and restarts. A committed event whose reply was lost is acknowledged by the server's existing event deduplication. Preferences use compare-and-swap; a lost response is acknowledged only if the next revision and exact desired fields are already on the server. Other revision mismatches become visible conflicts, without rebasing. Conflict/permission/validation failures are retained for explicit review; authentication failures keep pending data for sign-in. Only conflicted operations can be explicitly discarded.
+
+Successful Connect opens have durable local receipts. Their reports enter the same outbox; a restart can recover an observed successful open with its recorded reservation revision. Recovery never opens Connect or starts a print. Older receipts lacking that revision remain historical evidence and require explicit review rather than an invented transition.
+
+Local regression coverage uses the real SQLite-backed ledger: offline enqueue, restart/reconnect, lost replies, conflict retention, account switching, preference reconciliation, duplicate clicks, attestations and scheduled reconnect. These software tests do not establish physical manufacturing or printer acceptance. Live checks must use clearly labeled QA records and leave real team records untouched.

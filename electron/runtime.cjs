@@ -46,6 +46,13 @@ function smokeOptions(args) {
 
 const contentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-src 'none'; font-src 'self' data:; form-action 'self'";
 
+function demoOptions(args){
+ const data=args.find(arg=>arg.startsWith('--foundry-demo-data='))?.slice('--foundry-demo-data='.length);
+ if(data===undefined)return undefined;
+ if(!path.isAbsolute(data)||!/^Foundry-demo-[a-zA-Z0-9-]+$/.test(path.basename(data))||args.some(arg=>arg.startsWith('--foundry-smoke-')))throw Error('Demo mode requires a dedicated absolute Foundry-demo-* profile and cannot mix smoke flags.');
+ return{data};
+}
+
 const browserOptions = Object.freeze({
   nodeIntegration: false,
   contextIsolation: true,
@@ -57,4 +64,4 @@ const browserOptions = Object.freeze({
 
 // The current updater executes a Windows NSIS installer; never expose it on Mac.
 function nativeWindowsIntegration(platform=process.platform,arch=process.arch){return platform==='win32'&&arch==='x64';}
-module.exports = { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions, contentSecurityPolicy, browserOptions, nativeWindowsIntegration };
+module.exports = { desktopPaths, requestIsLocal, navigationIsLocal, externalUrlIsAllowed, smokeOptions,demoOptions, contentSecurityPolicy, browserOptions, nativeWindowsIntegration };

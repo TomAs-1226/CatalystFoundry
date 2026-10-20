@@ -38,7 +38,7 @@ npm test
 npm run dev
 ~~~
 
-The complete browser suite is **npm run test:e2e**. On Windows, install a supported Playwright browser with **npx playwright install chromium** or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH to an existing Chromium executable; never assume Linux's /usr/bin/chromium exists. Follow [WINDOWS.md](docs/WINDOWS.md) for detailed paths and integration setup.
+The complete browser suite is **npm run test:e2e**. On Windows, install a supported Playwright browser with **npx playwright install chromium** or set CHROMIUM_PATH to an existing Chromium executable; never assume Linux's /usr/bin/chromium exists. Follow [WINDOWS.md](docs/WINDOWS.md) for detailed paths and integration setup.
 
 ## Repository and releases
 
@@ -49,3 +49,5 @@ This public repository contains application source and synthetic fixtures. User 
 GitHub Actions runs native Windows build/unit/install checks. Publishing a signed internal prerelease requires an explicit workflow dispatch with Publish enabled and the repository's protected signing secret. It does not publish on ordinary pushes or PRs. The installed Windows EXE is currently unsigned with Authenticode; the separate Ed25519 update signature verifies OTA artifacts and does not represent a Windows publisher certificate.
 
 See [internal release notes](docs/INTERNAL-RELEASE.md), [printing integration](docs/PRINTING.md), [bundled slicer](docs/BUNDLED-SLICER.md), and [update protocol](docs/UPDATES.md). Live CAD, UI/GPU, physical printer/AMS and machine-acceptance checks require their own evidence. No zero-defect or physical-qualification claim is made.
+
+Teammates: start with [Getting started](docs/GETTING-STARTED.md). Account-scoped offline report delivery and its conflict rules are documented in [Record sync](docs/RECORD-SYNC.md).
