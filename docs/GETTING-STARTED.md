@@ -28,6 +28,6 @@ Keep the app open for background delivery. After reopening, the desktop resumes 
 
 ## Updates and help
 
-Use **Project → App updates**. Save before choosing **Save & restart**. Windows updates verify an Ed25519 signature and installer checksum. The Windows installer is not yet Authenticode signed. Mac builds are separate candidates and are usable only after the native Mac checks documented in [MACOS.md](MACOS.md) pass; Windows OTA does not update a Mac.
+Use **Project → App updates**. Save before choosing **Save & restart**. Windows updates verify an Ed25519 signature and installer checksum. The Windows installer is not yet Authenticode signed. Apple Silicon and Intel [Mac test candidates](MACOS.md) passed native installation/save/reopen and fixture slicing; they remain unsigned and unnotarized. Mac OTA and direct Connect handoff are unavailable.
 
 For a slower laptop, choose **Camera options → 3D quality → Low power**. Send a bug report with the app version, steps, the visible error and whether the geometry is missing before or after slicing. Share a public reproducer or exported fixture rather than private robot CAD or access tokens.

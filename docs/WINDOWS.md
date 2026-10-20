@@ -10,7 +10,7 @@ The dependency lock uses the published registry release of the otherwise unused 
 
 ## Build on the ROG agent
 
-When retaining installation evidence under a deeply nested workspace, pass a short, new absolute `-InstallDirectory` to `Verify-Installer.ps1`, separately from `-EvidenceDirectory`. Upstream NSIS uninstall/rename and bundled resource paths can exceed Win32 path limits in long custom targets. The verifier rejects an existing target and still uses an isolated data profile. Verification shares the app identity with the normal installation, so save current work before running NSIS. Use the default short per-user location for the normal app.
+When retaining installation evidence under a deeply nested workspace, pass a short, new absolute `-InstallDirectory` to `Verify-Installer.ps1`, separately from `-EvidenceDirectory`. Upstream NSIS uninstall/rename and bundled resource paths can exceed Win32 path limits in long custom targets. The verifier rejects an existing target and uses an isolated data profile. **A different installation directory does not isolate the per-user NSIS registration.** Setup can replace/remove a previous installation, including a QA target. Save and close every Foundry session first; the verifier refuses a running process, and the installer independently refuses with exit 1618 rather than forcibly closing it. Finish by restoring the intended normal installation. Do not use a removed QA runtime for later fixture tests.
 
 Use a native Windows x64 environment with Node.js **24.19 or newer in the 24 LTS line** and npm installed. This matches the cloud-tested runtime and supports the environment-proxy flag used by the local server scripts. Initial dependency installation and Electron/NSIS downloads require internet access. Keep this work in an ordinary writable checkout; do not build inside the installed application directory.
 
@@ -24,8 +24,8 @@ powershell -NoProfile -File .\scripts\windows\Build-Installer.ps1 -SkipDependenc
 The script runs type checking, unit/integration tests, the production UI build, the bundled service build and `electron-builder`. It stops on failures. Expected output:
 
 ```text
-release\Catalyst-Foundry-0.1.0-x64-Setup.exe
-release\Catalyst-Foundry-0.1.0-x64-Setup.exe.sha256
+release\Catalyst-Foundry-0.2.4-x64-Setup.exe
+release\Catalyst-Foundry-0.2.4-x64-Setup.exe.sha256
 ```
 
 The package is unsigned unless an authorised signing identity is configured independently. No signing identity or certificate is created by these scripts. An unsigned development installer may produce Windows trust warnings. Do not change security settings to bypass organisation policy; signing and distribution are separate tasks.
@@ -36,11 +36,11 @@ After preparation, `node scripts/windows/verify-bundle.mjs` checks the bundled l
 
 ## Verify the actual installer and two launches
 
-Run the generated installer in an isolated test install directory through the verification script. It installs per-user without requesting administrator privileges. It does not uninstall or overwrite the user's usual installation, read an existing project, connect accounts, slice, dispatch jobs or operate printers.
+Run the generated installer through the verification script after saving and closing Foundry. It installs per-user without requesting administrator privileges and can replace the previous installation through the shared NSIS registration. Only the launched application's data profile is isolated: it does not read an existing project, connect accounts, slice, dispatch jobs or operate printers.
 
 ```powershell
 powershell -NoProfile -File .\scripts\windows\Verify-Installer.ps1 `
-  -Installer .\release\Catalyst-Foundry-0.1.0-x64-Setup.exe
+  -Installer .\release\Catalyst-Foundry-0.2.4-x64-Setup.exe
 ```
 
 This performs a real NSIS install, then launches the installed `Catalyst Foundry.exe` twice. Both phases share one new isolated application profile and local data directory, separate from normal user data. The first launch mounts the production renderer, confirms browser Node APIs are unavailable, checks cross-origin rejection and saves a project through the real local service. The second process reopens the same project from disk. It writes `launch-save.json`, `launch-reopen.json` and `verification-summary.json` in a new temporary evidence directory. The summary includes the installer SHA-256, Authenticode status, Windows version and project ID. Preserve those reports as evidence. A script/config test on Linux is not a substitute.
@@ -53,11 +53,11 @@ The scripted installation smoke verifies installation, renderer isolation and pe
 
 Normal user data lives under Electron's per-user directory, usually `%APPDATA%\Catalyst Foundry`. The project is stored in `data\project.json`, slicing recovery state in `data\slicing-jobs.json` and desktop startup logs in `logs\desktop.log`. Portable project export is the supported backup/transfer path. Uninstall preserves user data. This version stores one workspace project; it is not a multi-user service.
 
-The packaged local service binds only `127.0.0.1` on an OS-assigned port. The renderer has no Node integration, uses context isolation and the Chromium sandbox, and accepts only its own local service origin. External HTTPS links open in the user's browser; file, executable and script schemes are rejected. The service closes on exit and asks the slicing service to cancel owned work. A second normal launch focuses the existing window. There is no auto-updater or publishing step.
+The packaged local service binds only `127.0.0.1` on an OS-assigned port. The renderer has no Node integration, uses context isolation and the Chromium sandbox, and accepts only its own local service origin. External HTTPS links open in the user's browser; file, executable and script schemes are rejected. The service closes on exit and asks the slicing service to cancel owned work. A second normal launch focuses the existing window. Windows OTA verifies the release manifest's Ed25519 signature and installer checksum; installation requires an explicit saved restart. Building does not publish a release.
 
 ## Authorised Onshape and reviewed slicer setup
 
-The default installation is disconnected. Read [Onshape setup](ONSHAPE.md) and [slicer setup](SLICING.md) first. The desktop launch inherits integration environment configuration from its parent process. The packaged helper `resources\setup\Start-Foundry.ps1` can set the two supported configuration **file paths** for that process only:
+The bundled offline slicer needs no external installation. Team sign-in and easy Onshape connection are covered in [Getting started](GETTING-STARTED.md). No user credentials ship in the package. Read [Onshape setup](ONSHAPE.md) and [slicer setup](SLICING.md) for advanced direct configuration. The desktop launch can inherit integration environment configuration from its parent process. The packaged helper `resources\setup\Start-Foundry.ps1` can set the two supported configuration **file paths** for that process only:
 
 ```powershell
 powershell -NoProfile -File "C:\path\to\Foundry\resources\setup\Start-Foundry.ps1" `
@@ -65,9 +65,9 @@ powershell -NoProfile -File "C:\path\to\Foundry\resources\setup\Start-Foundry.ps
   -SlicerConfig "C:\reviewed-profiles\foundry-slicer.json"
 ```
 
-These are examples of local paths, not credentials to create or paste into chat. Obtain authorised Onshape access through the documented setup; the application does not create accounts or provision OAuth credentials. The token remains in the server-owned file and is not sent to the renderer. The helper never reads the token or changes persistent environment settings. Exit a running instance before changing integration configuration. Launching the ordinary shortcut without a configured parent environment returns to disconnected mode.
+These are examples of local paths, not credentials to create or paste into chat. Obtain authorised Onshape access through the documented setup; the application does not create accounts or provision OAuth credentials. A direct token stays in the server-owned file and is not sent to the renderer. The helper never reads it or changes persistent environment settings. Exit a running instance before changing integration configuration. The ordinary shortcut uses bundled defaults and any separately saved team session, rather than retaining process-local overrides.
 
-Use absolute Windows paths in the reviewed slicer configuration. Install the pinned Bambu Studio version separately and provide complete matching machine, filament and process profiles. A detected executable and syntactically valid JSON do not constitute a physically validated printer profile. Confirm the actual CLI version/output and qualification checks in [SLICING.md](SLICING.md); exact machine/nozzle/plate/filament choices remain the team's responsibility. The app exports packages for operator-controlled manufacturing and does not verify loaded material, nozzle, plate, machine state or bed clearance.
+Use absolute Windows paths if supplying an external reviewed slicer configuration. That advanced override requires the pinned runtime and complete matching machine, filament and process profiles; the default uses the complete bundled runtime. A detected executable and syntactically valid JSON do not constitute a physically validated printer profile. Confirm the actual CLI version/output and qualification checks in [SLICING.md](SLICING.md); exact machine/nozzle/plate/filament choices remain the team's responsibility. The app exports packages or hands them to Connect for operator-controlled manufacturing and does not verify loaded material, nozzle, plate, machine state or bed clearance.
 
 See [ROG_AGENT_HANDOFF.md](ROG_AGENT_HANDOFF.md) for the remaining native acceptance work and evidence checklist.
 

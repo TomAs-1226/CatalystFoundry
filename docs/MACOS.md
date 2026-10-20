@@ -1,86 +1,66 @@
-# Mac packaging preparation (unreleased)
+# Mac 0.2.4 test candidates
 
-Native Mac candidates require an explicit GitHub-hosted run and passing per-architecture evidence. Hosted Apple Silicon and Intel builds/tests are authorized; the personal offline Mac is not accessed. No Apple credentials or certificates are created. Until a candidate passes its native checks, it remains unverified. Windows 0.2.2 remains the existing published release.
+Apple Silicon and Intel packages passed native build, isolated installation and save/reopen checks on GitHub-hosted macOS 15 runners. Each architecture also completed six genuine offline Bambu fixture slices. **Foundry itself is unsigned and not notarized. These are QA candidates, not trusted Mac distribution packages.** No personal Mac, Apple account, signing identity or security settings were used or changed.
 
-## Source identity
+## Downloads and evidence
 
-Desktop source: [TomAs-1226/CatalystFoundry](https://github.com/TomAs-1226/CatalystFoundry), base `16adc228baf750590bb25c21dd7404149e5e8ba1`. That revision was clean, committed and pushed before this preparation. The immutable Windows 0.2.2 installer was built from tag revision `13fdb1ee535760402ea848d8c09655c1228f06d5`; the subsequent commit changes release tooling. Mac/startup work extends that base. Each hosted candidate records its exact source revision; source changes are distinct from the immutable Windows release. Do not reuse version 0.2.2 for a new published build.
+The [successful native run](https://github.com/TomAs-1226/CatalystFoundry/actions/runs/39370796285) used clean source `8dd8ca09cb9aa61403f2f396592138f95fc147ca`, Node 24.22.0, Electron 42 and Bambu Studio 2.8.2.61. The immutable Windows 0.2.4 release has its own earlier source revision and evidence.
 
-[CatalystFoundrySync](https://github.com/TomAs-1226/CatalystFoundrySync) is the separate website/sync repository. It is not the desktop application. Desktop source also contains shared sync code; no service deployment or API changes are required by this Mac preparation.
-
-## Planned targets and current limits
-
-| Target | Package | Status |
+| Target | DMG and ZIP | Native checks |
 | --- | --- | --- |
-| Apple Silicon, native `arm64` | Separate DMG and ZIP | Prepared configuration; native build/launch/slicing untested |
-| Intel, native `x64` | Separate DMG and ZIP | Prepared configuration; native build/launch/slicing untested |
-| Universal / Rosetta | None | Not prepared or qualified |
+| Apple Silicon `arm64` | [QA artifact](https://github.com/TomAs-1226/CatalystFoundry/actions/runs/39370796285/artifacts/12240969896) | Build; installed app save/reopen; six native slices passed |
+| Intel `x64` | [QA artifact](https://github.com/TomAs-1226/CatalystFoundry/actions/runs/39370796285/artifacts/12241532918) | Build; installed app save/reopen; six native slices passed |
 
-The initial packaging floor is macOS **13.5**, chosen conservatively for this toolchain. Electron 42's own documented floor is Monterey; this does not establish Foundry compatibility on that minimum. The standalone Node 24.22.0 build tools require macOS 13.5. Neither Foundry target is supported as a tested product until the native checks below pass on that architecture. Build each target on matching hardware with native Node. [Electron 42 platform support](https://github.com/electron/electron/blob/v42.0.0/README.md#platform-support), [Node 24.22.0 platform table](https://github.com/nodejs/node/blob/v24.22.0/BUILDING.md#supported-platforms), [electron-builder v26 architectures](https://www.electron.build/v26/docs/mac/#architecture-support).
+Artifacts can require GitHub sign-in and expire under the repository's artifact retention policy. Retain the matching `package-build.json`. It is written **before** installation and slicing: its `nativeLaunchVerified: false` and `slicingVerified: false` describe that earlier stage. Later passing steps and six case results are in the linked run logs; the original build report has not been rewritten. Detailed temporary Mac launch/slice JSON files were not uploaded by that run. The local validation archive retains both job logs and downloaded packages; exact per-case Mac toolpath hashes are not claimed from missing reports.
 
-This preparation uses native per-user Application Support paths and Electron secure storage. Sign in afresh on a Mac; Windows encrypted sessions/DPAPI blobs are not portable. The existing website/team account and cloud CAD library can then be used. Reusing cached immutable parts does not require another Onshape geometry download. Offline preparation remains separate from an online manufacturing reservation.
+SHA-256 values, independently checked after downloading both architectures:
 
-Windows NSIS OTA and the Windows Connect installer are explicitly disabled on Mac. Mac automatic updates and direct Connect handoff remain unavailable. A native sliced `.gcode.3mf` can be exported for operator-controlled review in an independently installed vendor application after that workflow is tested. No download, approval or export starts printing.
+```text
+758a0a381bbbc52c134c3bbcfa20d7345fe1ab6f75fc01419179f3176ce1c22d  Catalyst-Foundry-0.2.4-mac-arm64.dmg
+1894a0ebeb98b5cacf44be248e19e11ab22b8792809d7d55b5cef29c6ac67965  Catalyst-Foundry-0.2.4-mac-arm64.zip
+194c797d195b07a2278e1a5213078d99e8334ee7d5bab46e96cf4f73c21a02a5  Catalyst-Foundry-0.2.4-mac-x64.dmg
+5ffc5ce1fcb2d1af441302202466cf08404b44a74dc98c8768083e0703f7494e  Catalyst-Foundry-0.2.4-mac-x64.zip
+```
 
-## Runtime prerequisites
+Both jobs passed 429 tests with two platform skips across 51 files. The DMG verifier mounted the real image read-only, copied the app into an isolated QA directory, checked every packaged vendor byte and its preserved signature, then launched that packaged app twice against a new profile. The same saved project identity survived reopening. Six X1/X2D holes/normal/tree cases ran separately against the prepared native vendor tree; the packaged copy was checked against that complete pinned inventory. Cases cover root-owned toolpath attachment, fixture-only approval, persistence and stale-on-edit. They did not contact Onshape, Connect or printers and do not qualify a physical profile.
 
-Use the complete official **Bambu Studio 2.8.2.61** DMG, including its application, frameworks, resources and profile tree. No local Studio install/account is needed for the planned bundled CLI. No Windows executable is used on Mac.
+## What remains to qualify
 
-- [Official DMG](https://github.com/bambulab/BambuStudio/releases/download/v02.08.02.61/Bambu_Studio_mac-v02.08.02.61-20260820225108.dmg), 288329156 bytes, SHA-256 `cf648a95858fb630e1353c4987038df60d6caab693f18411fb95fb809f2d6926`.
-- [Matching source tar.gz](https://codeload.github.com/bambulab/BambuStudio/tar.gz/refs/tags/v02.08.02.61), SHA-256 `fccea7043da48dfd05b98fdfc341cb29d0169880f3b3ae6bedf00ebfd3be7d28`. Its source, license and upstream notices are included with packaging.
+Hosted checks do not establish normal-user GPU performance, minimum-macOS compatibility, Keychain-backed sign-in, file pickers, multi-device record sync on a Mac, AMS/printer compatibility or physical print quality. Representative operator testing remains necessary. The configuration floor is macOS 13.5; testing occurred on macOS 15. No Universal/Rosetta package is qualified.
 
-These hashes identify upstream artifacts, not a successful Mac execution. Native preparation checks the archive hashes, mounts read-only, verifies the vendor signature/Gatekeeper assessment, inspects the executable/version and uses `lipo` on every detected Mach-O binary. A target is rejected if the complete vendor runtime lacks that architecture. The DMG's actual architectures have not been inspected on a Mac; a single DMG asset must not be called a tested universal runtime.
+Mac uses per-user Application Support storage and Electron secure storage. Sign in afresh; Windows encrypted sessions are not portable. The app shares the website's team library and records implementation, but its normal account workflow needs Mac operator validation. Reusing an immutable cloud part does not require a fresh Onshape geometry download. Offline preparation does not reserve manufacturing copies.
 
-The original vendor app stays unmodified. Resolved profiles/catalog are generated outside it. Runtime inventories pin every file and relative symlink; paths escaping the bundle, changed entries and unexpected files are rejected. Signing must preserve vendor bytes. The packaged copy is rechecked afterward. Runtime hashes bind the manufacturing fingerprint; cross-platform runtime/profile changes require a new toolpath and review.
+Windows NSIS OTA, automatic Connect installation and direct Connect handoff are disabled on Mac. Mac OTA is not implemented. Native `.gcode.3mf` export is available for operator-controlled review in a separately installed vendor application; that end-to-end handoff is unqualified. Export never starts printing.
 
-## Native build, only after Mac execution is authorized
+## Pinned slicing runtime
 
-Use a fresh writable source extraction, Node **24.22.0** (24.19+ within the 24 LTS line), npm, and current Xcode/Command Line Tools exposing `hdiutil`, `ditto`, `codesign`, `plutil`, `lipo`, `spctl`, `tar`, `xcrun notarytool` and `stapler`. No Docker/Windows cross-build is offered. Run in a logged-in native Mac session; headless vendor CLI compatibility is not assumed.
+The complete official Bambu Studio 2.8.2.61 application, frameworks, resources and profiles are included. A separate Studio installation or account is unnecessary for the bundled offline CLI.
 
-Obtain the two pinned official inputs above through an authorized download and retain them locally. `npm ci` preserves the supplied lockfile. The build accepts only explicit files and does not connect accounts, create keys, publish or install/restart the normal app.
+- [Official DMG](https://github.com/bambulab/BambuStudio/releases/download/v02.08.02.61/Bambu_Studio_mac-v02.08.02.61-20260820225108.dmg), SHA-256 `cf648a95858fb630e1353c4987038df60d6caab693f18411fb95fb809f2d6926`.
+- [Corresponding source](https://codeload.github.com/bambulab/BambuStudio/tar.gz/refs/tags/v02.08.02.61), SHA-256 `fccea7043da48dfd05b98fdfc341cb29d0169880f3b3ae6bedf00ebfd3be7d28`. Matching source, license and upstream notices accompany packaging.
+
+Preparation verifies hashes, mounts read-only, checks vendor signatures and inspects every Mach-O architecture. The vendor's short version identifies `02.08.02.61`; its `CFBundleVersion` is empty. Both final jobs recorded `vendorGatekeeperAccepted: true`. That assessment applies to upstream Bambu, not the unsigned Foundry wrapper.
+
+Every vendor file and internal relative symlink is inventoried. Missing, changed, additional or escaping entries fail verification. Resolved profiles and native outputs stay outside the vendor app. An earlier native trial sliced once, then correctly failed because Bambu wrote `Resources/result.json`. Mac invocation now supplies an external `--outputdir` and an export basename, matching pinned vendor path behavior. Both final runs completed six repeated slices without changing the vendor tree. No inventory exception or security bypass was added.
+
+## Reproduce native QA
+
+Build each architecture on matching native hardware with Node 24.22.0 and Xcode Command Line Tools. Use a clean checkout and retain the lockfile. Supply the two pinned upstream files:
 
 ```sh
 npm ci
-export CSC_NAME='Developer ID Application: YOUR EXISTING IDENTITY (TEAMID)'
 npm run dist:mac -- --arch arm64 \
-  --bambu-dmg /absolute/path/Bambu_Studio_mac-v02.08.02.61-20260820225108.dmg \
-  --bambu-source /absolute/path/BambuStudio-v02.08.02.61-source.tar.gz
-```
-
-On an Intel Mac, use native x64 Node and replace `--arch arm64` with `--arch x64`. Do not run both targets from the same prepared vendor/output directory; keep a fresh extraction per candidate. Missing identities or archive/version/architecture/signature problems fail the build. `--unsigned-local` is an explicit local QA option that disables Developer ID signing/hardened runtime in that package only; it is not distributable, may be rejected by macOS, and must not lead to changing Gatekeeper/security settings.
-
-The build runs the unit suite and production bundle, writes `release/mac-ARCH/Catalyst-Foundry-VERSION-mac-ARCH.dmg` and `.zip`, and records hashes in `package-build.json`. It records notarization, installation, native slicing and GPU checks as untested. It does not turn a build success into validation.
-
-## Signing and notarization prerequisites
-
-Distribution requires an **existing, authorized Developer ID Application identity** with its private key accessible in the build Mac's Keychain, plus an existing authorized notarization credential profile. No certificate, Apple account, password or API key is created by this preparation. A Windows OTA signing key does not replace Apple signing.
-
-Signed distribution enables hardened runtime. The pinned Electron signing defaults supply helper entitlements; inspect the final signed entitlements and native launch result before accepting them. No debug entitlement or security-policy workaround is added. Vendor code retains its own signatures through `signIgnore`, and full vendor hashes are checked after packaging.
-
-With authorized credentials already configured, submit the signed DMG, require `Accepted`, then staple and assess it. These commands upload the package to Apple and therefore need execution authorization; none has been run here:
-
-```sh
-xcrun notarytool submit release/mac-arm64/Catalyst-Foundry-VERSION-mac-arm64.dmg \
-  --keychain-profile YOUR_EXISTING_PROFILE --wait --output-format json
-xcrun stapler staple release/mac-arm64/Catalyst-Foundry-VERSION-mac-arm64.dmg
-xcrun stapler validate release/mac-arm64/Catalyst-Foundry-VERSION-mac-arm64.dmg
-```
-
-Staple/validate the signed app too before making its final ZIP; rebuild that ZIP with `ditto -c -k --sequesterRsrc --keepParent APP.app FINAL.zip`. Verify the signature and Gatekeeper assessment on the actual mounted/downloaded distribution and retain final SHA-256 values **after** stapling/repacking. Refresh the build report hashes because notarization changes package bytes. Do not publish the earlier unstapled ZIP as the final candidate. [Apple notarization requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution), [Apple diagnostics](https://developer.apple.com/documentation/security/resolving-common-notarization-issues).
-
-## Required native evidence
-
-After authorization and successful signing/notarization, test the actual DMG with a new isolated evidence directory:
-
-```sh
+  --bambu-dmg /absolute/path/bambu.dmg \
+  --bambu-source /absolute/path/bambu-source.tar.gz \
+  --unsigned-local
 node scripts/macos/verify-installer.mjs --arch arm64 \
-  --dmg /absolute/path/Catalyst-Foundry-VERSION-mac-arm64.dmg \
-  --evidence /absolute/new/path/foundry-native-qa
+  --dmg release/mac-arm64/Catalyst-Foundry-0.2.4-mac-arm64.dmg \
+  --evidence /absolute/new/path/foundry-native-qa --unsigned-local
 ```
 
-This copies the app from a read-only mounted DMG into the new QA directory, checks trust and vendor integrity, and launches only app-owned isolated smoke mode twice. It retains `launch-save.json`, `launch-reopen.json`, logs, exit codes, launch times, project identity and `verification-summary.json`. It never opens the user's normal profile. A 180-second timeout fails that Mac check; a delayed later observation must be recorded separately, not relabeled as a passing first attempt. These checks do not prove GPU rendering or real CAD import.
+Use `x64` and native Intel Node for Intel QA. Explicit unsigned mode permits compatibility testing; it does not establish distribution trust. Do not alter Gatekeeper, quarantine attributes or organization policies to make a candidate run.
 
-Run the portable native fixture controller with the packaged runtime:
+Run fixtures against the installed package runtime when retaining a complete final acceptance report:
 
 ```sh
 export FOUNDRY_QA_RUNTIME='/absolute/path/installed/Catalyst Foundry.app/Contents/Resources/slicer'
@@ -88,18 +68,10 @@ export FOUNDRY_QA_WORK='/absolute/new/path/native-slice-work'
 node --import tsx scripts/windows/verify-review-connect.ts /absolute/new/path/native-slice-evidence
 ```
 
-The historical script directory name does not make the code Windows-specific. It exercises six actual X1/X2D public-fixture slices, holes/normal/tree support, selected colors/settings, root-owned Review attachment/recovery, fixture-only approval, persistence and stale-on-edit. It does not contact printers, call Onshape or operate Connect. Retain output hashes, profile/runtime hashes, native logs and exact command/exit outcomes. Fixtures must remain non-manufacturable.
+The historical script directory does not make it Windows-specific. Keep `launch-save.json`, `launch-reopen.json`, `verification-summary.json`, case reports, toolpath/profile hashes and command outcomes. Fixtures must remain non-manufacturable.
 
-Only then perform authorized operator checks of normal installation to `~/Applications/Catalyst Foundry.app`, two normal launches, project save/reopen/export, file pickers/downloads, window sizing, camera, actual GPU rendering and observed CPU/RSS/FPS under representative public fixtures. Check Keychain-backed sign-in, shared cached parts/offline reopen and reservation behavior separately. Test target printer/AMS/physical manufacturing only with separate printer authorization; do not infer it from software fixtures. Preserve existing `~/Library/Application Support/Catalyst Foundry/` data across replacement/uninstall.
+## Signing and notarization
 
-## Performance scope
+Normal Mac distribution requires an authorized Developer ID Application identity and notarization credentials. Neither was supplied or created. A Windows OTA signature does not substitute for Apple signing. Preserve vendor signatures and verify the complete runtime after signing the wrapper. Submit the signed DMG to Apple, require acceptance, staple/validate it, and regenerate the ZIP from the stapled app. Retain final hashes after these byte-changing steps and repeat native checks on those final artifacts. No notarization upload was performed here.
 
-The Windows release had one roughly 130-second first post-update startup. A later observation of the same app succeeded after the initial 90-second observer failed. That unresolved observation is retained; this local preparation does not claim to have fixed it in an installed app.
-
-Local measurements identified repeated full runtime verification, whole-file buffer peaks and synchronous hash work. The prepared change enumerates the runtime once per check, reads every byte through four reusable 256 KiB buffers, and omits a redundant second verification within the same service-opening call. It has no persistent verification cache; profile selection, external configuration and each slice continue to verify. See the local preparation performance report for measured before/after CPU, memory, event-loop and worker results. No new app/GPU or low-end Mac performance has been measured.
-
-## Hosted qualification findings (2026-10-20 UTC)
-
-Native Apple Silicon and Intel jobs were authorized and executed. The pinned vendor has an empty CFBundleVersion and identifies 02.08.02.61 in CFBundleShortVersionString. Its code signature verifies, but Gatekeeper can reject it as Unnotarized Developer ID. Explicit unsigned QA can retain that failed trust result and continue compatibility tests; normal signed builds still require successful vendor assessment. No security settings, quarantine attributes or Apple credentials are changed.
-
-Apple Silicon completed one genuine native public two-hole fixture slice, including exact demonstration review/save/reopen. The next verification detected an added vendor Resources/result.json. Complete repeated slicing and packages remain unqualified until that writable-output defect is corrected and both architectures pass. This is a failed integrity check retained as evidence, not an exception to the inventory policy. No Mac installer is presented as built or validated on the basis of Windows tests.
+Preserve `~/Library/Application Support/Catalyst Foundry/` during replacement. Manual installation, two normal launches, portable-project save/reopen, file pickers, camera/GPU behavior and team sign-in/offline recovery remain operator acceptance steps before broader Mac rollout.

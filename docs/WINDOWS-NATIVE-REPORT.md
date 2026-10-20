@@ -1,5 +1,7 @@
 # Foundry plate workspace correction
 
+**Historical report:** the current internal preview is [0.2.4](INTERNAL-RELEASE.md). Its [public validation summary](https://github.com/TomAs-1226/CatalystFoundry/releases/download/v0.2.4/Release-0.2.4-public-summary.md) records final startup, install, save/reopen, slicing and sync outcomes. The plate-workspace report below describes an earlier candidate; its old startup and acceptance statements are not current release evidence.
+
 Installed and restarted in your normal app; native installation and actual installed API acceptance passed.
 
 ## Use
